@@ -8,62 +8,92 @@ Vertex vertex(float x, float y, float z){
   return v;
 }
 
-void vertex_rotX(Vertex *v, float ang){
-  Vertex cpy  = *v;
-  float s, c;
-  sincosf(ang, &s, &c);
-  v->y = cpy.y * c - cpy.z * s;
-  v->z = cpy.y * s + cpy.z * c;
+Vertex vertex_rotX(Vertex *v, float s, float c){
+  Vertex rot = {
+    .x = v->x,
+    .y = v->y * c - v->z * s,
+    .z = v->y * s + v->z * c
+  };
+  return rot;
 }
 
-void vertex_rotY(Vertex *v, float ang){
-  Vertex cpy  = *v;
-  float s, c;
-  sincosf(ang, &s, &c);
-  v->x = cpy.x * c - cpy.z * s;
-  v->z = cpy.x * s + cpy.z * c;
+Vertex vertex_rotY(Vertex *v, float s, float c){
+  Vertex rot = {
+    .x = v->x * c - v->z * s,
+    .y = v->y,
+    .z = v->x * s + v->z * c
+  };
+  return rot;
 }
 
-void vertex_rotZ(Vertex *v, float ang){
-  Vertex cpy  = *v;
-  float s, c;
-  sincosf(ang, &s, &c);
-  v->x = cpy.x * c - cpy.y * s;
-  v->y = cpy.x * s + cpy.y * c;
+Vertex vertex_rotZ(Vertex *v, float s, float c){
+  Vertex rot = {
+    .x = v->x * c - v->y * s,
+    .y = v->x * s + v->y * c,
+    .z = v->z
+  };
+  return rot;
 }
 
-Camera camera(Vertex v, float nearPlane){
+Vertex vertex_getClip(Vertex clip, Vertex unclip, float z){
+  Vertex v = {.z = z};
+  float
+    dx = unclip.x - clip.x,
+    dy = unclip.y - clip.y,
+    dz = unclip.z - clip.z;
+  if(dz == 0.f) dz = 1e-6f;
+  v.x = dx / dz * (z - clip.z) + clip.x;
+  v.y = dy / dz * (z - clip.z) + clip.y;
+  return v;
+}
+
+Camera camera(Vertex v, float farPlane, float nearPlane, float fieldView){
   Camera cam = {
     .pos = v,
-    .nearPlane = nearPlane
+    .farPlane = farPlane,
+    .nearPlane = nearPlane,
+    .fieldView = fieldView
   };
   return cam;
 }
 
 void camera_rotate(Camera *cam, float dYaw, float dPitch){
-  cam->yaw = SDL_fmodf(cam->yaw + dYaw, SDL_PI_F);
+  cam->yaw = SDL_fmodf(cam->yaw + dYaw, 2.f * SDL_PI_F);
   cam->pitch = SDL_min(SDL_max(cam->pitch + dPitch, SDL_PI_F / -2.f), SDL_PI_F / 2.f);
 }
 
 void camera_move(Camera *cam, Vertex dPos){
-  cam->pos.x += dPos.x;
-  cam->pos.y += dPos.y;
-  cam->pos.z += dPos.z;
+  float
+    fx = SDL_cosf(cam->pitch) * SDL_sinf(cam->yaw),
+    fy = SDL_sinf(cam->pitch),
+    fz = SDL_cosf(cam->pitch) * SDL_cosf(cam->yaw),
+    rx = SDL_sinf(cam->yaw + SDL_PI_F / 2.f),
+    rz = SDL_cosf(cam->yaw + SDL_PI_F / 2.f);
+  cam->pos.x += dPos.x * rx + dPos.z * fx;
+  cam->pos.y += dPos.z * fy + dPos.y;
+  cam->pos.z += dPos.x * rz + dPos.z * fz;
 }
 
-SDL_FPoint vertex_onCamera(Vertex *v, Camera *cam){
-  Vertex dv = {
-    .x = v->x * 120.f - cam->pos.x,
-    .y = v->y * 120.f - cam->pos.y,
-    .z = v->z - cam->pos.z
-  };
-  vertex_rotX(&dv, cam->yaw);
-  vertex_rotY(&dv, cam->pitch);
-  SDL_FPoint proj = {
-    .x = dv.x / dv.z + 680.f,
-    .y = dv.y / dv.z + 360.f
-  };
-  return proj;
+Vertex vertex_onCamera(Vertex *v, Camera *cam, Vertex offset, Vertex rot, float scale){
+  Vertex dv = *v;
+  float s, c;
+  sincosf(rot.z, &s, &c);
+  dv = vertex_rotZ(&dv, s, c);
+  sincosf(rot.y, &s, &c);
+  dv = vertex_rotY(&dv, s, c);
+  sincosf(rot.x, &s, &c);
+  dv = vertex_rotX(&dv, s, c);
+  
+  
+  dv.x = dv.x * scale - cam->pos.x + offset.x,
+  dv.y = dv.y * scale - cam->pos.y + offset.y,
+  dv.z = dv.z * scale - cam->pos.z + offset.z;
+  
+  sincosf(cam->yaw, &s, &c);
+  dv = vertex_rotY(&dv, s, c);
+
+  sincosf(cam->pitch, &s, &c);
+  return vertex_rotX(&dv, s, c);
 }
 
 Color color(Uint8 r, Uint8 g, Uint8 b, Uint8 a){
@@ -80,32 +110,137 @@ Poly poly(Vertex *v1, Vertex *v2, Vertex *v3){
   return p;
 }
 
-void poly_render(SDL_Renderer *rend, Camera *cam, Poly *poly, Color color){
-  SDL_SetRenderDrawColor(rend, color.r, color.g, color.b, color.a);
-  SDL_FPoint proj[3] = {
-    vertex_onCamera(poly->vert[0], cam),
-    vertex_onCamera(poly->vert[1], cam),
-    vertex_onCamera(poly->vert[2], cam)
+Model model(Vertex *vertex, size_t vertexCount, Poly *poly, Color *color, size_t polyCount){
+  Model mdl = {
+    .vertex = vertex,
+    .vertexCount = vertexCount,
+    .poly = poly,
+    .color = color,
+    .polyCount = polyCount
   };
-  SDL_RenderLine(
-    rend,
-    proj[0].x,
-    proj[0].y,
-    proj[1].x,
-    proj[1].y
-  );
-  SDL_RenderLine(
-    rend,
-    proj[1].x,
-    proj[1].y,
-    proj[2].x,
-    proj[2].y
-  );
-  SDL_RenderLine(
-    rend,
-    proj[0].x,
-    proj[0].y,
-    proj[2].x,
-    proj[2].y
-  );
+  return mdl;
+}
+
+Object object(Model *model, Vertex pos, float scale){
+  Object obj = {
+    .model = model,
+    .pos = pos,
+    .scale = scale
+  };
+  return obj;
+}
+
+void object_rotateX(Object *obj, float ang){
+  obj->rot.x = SDL_fmodf(obj->rot.x + ang, 2.f * SDL_PI_F);
+}
+
+void object_rotateY(Object *obj, float ang){
+  obj->rot.y = SDL_fmodf(obj->rot.y + ang, 2.f * SDL_PI_F);
+}
+
+void object_rotateZ(Object *obj, float ang){
+  obj->rot.z = SDL_fmodf(obj->rot.z + ang, 2.f * SDL_PI_F);
+}
+
+void object_move(Object *obj, Vertex dv){
+  obj->pos.x += dv.x;
+  obj->pos.y += dv.y;
+  obj->pos.z += dv.z;
+}
+
+void object_render(Object *obj, SDL_Renderer *rend, Camera *cam, float cx, float cy){
+  Vertex clipped[3], unclipped[3];
+  Uint8 clipCount, unclipCount;
+  float scale = obj->scale, s, c;
+
+  for(size_t i = 0; i < obj->model->polyCount; ++i){
+    clipCount = unclipCount = 0;
+    Color color = obj->model->color[i];
+    Poly poly = obj->model->poly[i];
+    SDL_SetRenderDrawColor(rend, color.r, color.g, color.b, color.a);
+    Vertex proj[3] = {
+      vertex_onCamera(poly.vert[0], cam, obj->pos, obj->rot, scale),
+      vertex_onCamera(poly.vert[1], cam, obj->pos, obj->rot, scale),
+      vertex_onCamera(poly.vert[2], cam, obj->pos, obj->rot, scale)
+    };
+
+    proj[0].x *= cam->fieldView, proj[0].y *= cam->fieldView;
+    proj[1].x *= cam->fieldView, proj[1].y *= cam->fieldView;
+    proj[2].x *= cam->fieldView, proj[2].y *= cam->fieldView;
+
+    if(proj[0].z <= cam->nearPlane) clipped[clipCount++] = proj[0];
+    else unclipped[unclipCount++] = proj[0];
+    if(proj[1].z <= cam->nearPlane) clipped[clipCount++] = proj[1];
+    else unclipped[unclipCount++] = proj[1];
+    if(proj[2].z <= cam->nearPlane) clipped[clipCount++] = proj[2];
+    else unclipped[unclipCount++] = proj[2];
+
+    switch(clipCount){
+    case 0:{
+      SDL_RenderLine(
+        rend,
+        proj[0].x / proj[0].z + cx, proj[0].y / proj[0].z + cy,
+        proj[1].x / proj[1].z + cx, proj[1].y / proj[1].z + cy
+      );
+      SDL_RenderLine(
+        rend,
+        proj[1].x / proj[1].z + cx, proj[1].y / proj[1].z + cy,
+        proj[2].x / proj[2].z + cx, proj[2].y / proj[2].z + cy
+      );
+      SDL_RenderLine(
+        rend,
+        proj[0].x / proj[0].z + cx, proj[0].y / proj[0].z + cy,
+        proj[2].x / proj[2].z + cx, proj[2].y / proj[2].z + cy
+      );
+    }
+    break;
+    case 1:{
+      Vertex
+        v1 = vertex_getClip(clipped[0], unclipped[0], cam->nearPlane),
+        v2 = vertex_getClip(clipped[0], unclipped[1], cam->nearPlane);
+      SDL_RenderLine(
+        rend,
+        unclipped[0].x / unclipped[0].z + cx, unclipped[0].y / unclipped[0].z + cy,
+        unclipped[1].x / unclipped[1].z + cx, unclipped[1].y / unclipped[1].z + cy
+      );
+      SDL_RenderLine(
+        rend,
+        unclipped[0].x / unclipped[0].z + cx, unclipped[0].y / unclipped[0].z + cy,
+        v1.x / v1.z + cx, v1.y / v1.z + cy
+      );
+      SDL_RenderLine(
+        rend,
+        v1.x / v1.z + cx, v1.y / v1.z + cy,
+        v2.x / v2.z + cx, v2.y / v2.z + cy
+      );
+      SDL_RenderLine(
+        rend,
+        v2.x / v2.z + cx, v2.y / v2.z + cy,
+        unclipped[1].x / unclipped[1].z + cx, unclipped[1].y / unclipped[1].z + cy
+      );
+    }
+    break;
+    case 2:{
+      Vertex
+        v1 = vertex_getClip(clipped[0], unclipped[0], cam->nearPlane),
+        v2 = vertex_getClip(clipped[1], unclipped[0], cam->nearPlane);
+      SDL_RenderLine(
+        rend,
+        unclipped[0].x / unclipped[0].z + cx, unclipped[0].y / unclipped[0].z + cy,
+        v1.x / v1.z + cx, v1.y / v1.z + cy
+      );
+      SDL_RenderLine(
+        rend,
+        v1.x / v1.z + cx, v1.y / v1.z + cy,
+        v2.x / v2.z + cx, v2.y / v2.z + cy
+      );
+      SDL_RenderLine(
+        rend,
+        unclipped[0].x / unclipped[0].z + cx, unclipped[0].y / unclipped[0].z + cy,
+        v2.x / v2.z + cx, v2.y / v2.z + cy
+      );
+    }
+    break;
+    }    
+  }
 }

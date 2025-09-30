@@ -9,22 +9,29 @@ union Vertex{
 typedef union Vertex Vertex;
 
 Vertex vertex(float x, float y, float z);
-void vertex_rotX(Vertex *v, float ang);
-void vertex_rotY(Vertex *v, float ang);
-void vertex_rotZ(Vertex *v, float ang);
+
+Vertex vertex_rotX(Vertex *v, float s, float c);
+
+Vertex vertex_rotY(Vertex *v, float s, float c);
+
+Vertex vertex_rotZ(Vertex *v, float s, float c);
+
+Vertex vertex_getClip(Vertex clip, Vertex unclip, float z);
 
 struct Camera{
   Vertex pos;
-  float nearPlane;
-  float pitch, yaw;
+  float farPlane, nearPlane, fieldView;
+  float yaw, pitch;
 };
 typedef struct Camera Camera;
 
-Camera camera(Vertex v, float nearPlane);
+Camera camera(Vertex v, float farPlane, float nearPlane, float fieldView);
+
 void camera_rotate(Camera *cam, float dYaw, float dPitch);
+
 void camera_move(Camera *cam, Vertex dPos);
 
-SDL_FPoint vertex_onCamera(Vertex *v, Camera *cam);
+Vertex vertex_onCamera(Vertex *v, Camera *cam, Vertex offset, Vertex rot, float scale);
 
 union Color{
   Uint8 rgba[4];
@@ -42,4 +49,33 @@ struct Poly{
 typedef struct Poly Poly;
 
 Poly poly(Vertex *v1, Vertex *v2, Vertex *v3);
-void poly_render(SDL_Renderer *rend, Camera *cam, Poly *poly, Color color);
+
+struct Model{
+  Vertex *vertex;
+  size_t vertexCount;
+  Poly *poly;
+  Color *color;
+  size_t polyCount;
+};
+typedef struct Model Model;
+
+Model model(Vertex *vertex, size_t vertexCount, Poly *poly, Color *color, size_t polyCount);
+
+struct Object{
+  Model *model;
+  Vertex pos, rot;
+  float scale;
+};
+typedef struct Object Object;
+
+Object object(Model *model, Vertex rCenter, float scale);
+
+void object_rotateX(Object *obj, float ang);
+
+void object_rotateY(Object *obj, float ang);
+
+void object_rotateZ(Object *obj, float ang);
+
+void object_move(Object *obj, Vertex dv);
+
+void object_render(Object *obj, SDL_Renderer *rend, Camera *cam, float cx, float cy);

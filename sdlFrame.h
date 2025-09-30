@@ -10,9 +10,14 @@ struct KeyboardHandler{
 };
 typedef struct KeyboardHandler KeyboardHandler;
 
+/** \attention Should be called by the event handler */
 void KeyboardHandler_pressKey(KeyboardHandler*, SDL_Keycode);
+
+/** \attention Should be called by the event handler */
 void KeyboardHandler_releaseKey(KeyboardHandler*, SDL_Keycode);
+
 bool KeyboardHandler_hasKey(KeyboardHandler*, SDL_Keycode);
+
 void KeyboardHandler_clear(KeyboardHandler*);
 
 #define MOUSEB_LEFT (1 << 0)
@@ -32,15 +37,31 @@ struct MouseHandler{
 };
 typedef struct MouseHandler MouseHandler;
 
+/** \attention Should be called by the event handler */
 void MouseHandler_setPos(MouseHandler*, float x, float y);
+
+/** \attention Should be called by the event handler */
 void MouseHandler_move(MouseHandler*, float dx, float dy);
+
 SDL_FPoint MouseHandler_getPos(MouseHandler*);
+
+/** \attention Should be called once per frame */
 SDL_FPoint MouseHandler_getMovement(MouseHandler*);
+
+/** \attention Should be called by the event handler */
 void MouseHandler_pressButton(MouseHandler*, Uint8 button);
+
+/** \attention Should be called by the event handler */
 void MouseHandler_releaseButton(MouseHandler*, Uint8 button);
+
+/** \attention Should be called once per frame */
 Uint8 MouseHandler_hasButton(MouseHandler*, Uint8 button);
+
 void MouseHandler_scroll(MouseHandler*, float scroll);
+
+/** \attention Should be called once per frame */
 float MouseHandler_getScroll(MouseHandler*);
+
 void MouseHandler_clear(MouseHandler*);
 
 struct MenuState;
@@ -56,9 +77,11 @@ typedef struct MenuState MenuState;
 
 
 MenuState MenuState_new(MenuFunc fnTick, MenuFunc fnRender, KeyboardHandler*, MouseHandler*, Uint32 auxBytes);
+
 void MenuState_destroy(MenuState *menu);
 
 bool FPoint_equal(SDL_FPoint*, SDL_FPoint*);
+
 void FPoint_copy(SDL_FPoint *dest, SDL_FPoint *src);
 
 #endif
