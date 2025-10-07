@@ -18,6 +18,18 @@ Vertex vertex_rotZ(Vertex *v, float s, float c);
 
 Vertex vertex_getClip(Vertex clip, Vertex unclip, float z);
 
+/* Vertex operators */
+
+Vertex vertex_add(Vertex a, Vertex b);
+
+Vertex vertex_sub(Vertex a, Vertex b);
+
+Vertex vertex_scalarMul(Vertex a, float scalar);
+
+Vertex vertex_scalarDiv(Vertex a, float scalar);
+
+float vertex_dot(Vertex a, Vertex b);
+
 struct Camera{
   Vertex pos;
   float farPlane, nearPlane, fieldView;
@@ -29,7 +41,9 @@ Camera camera(Vertex v, float farPlane, float nearPlane, float fieldView);
 
 void camera_rotate(Camera *cam, float dYaw, float dPitch);
 
-void camera_move(Camera *cam, Vertex dPos);
+void camera_moveAbs(Camera *cam, Vertex dPos);
+
+void camera_moveRel(Camera *cam, Vertex dPos);
 
 Vertex vertex_onCamera(Vertex *v, Camera *cam, Vertex offset, Vertex rot, float scale);
 
@@ -43,23 +57,23 @@ typedef union Color Color;
 
 Color color(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 
-struct Poly{
+struct Polygon{
   Uint16 idx[3];
   Uint16 colorIndex;
 };
-typedef struct Poly Poly;
+typedef struct Polygon Polygon;
 
-Poly poly(Uint16 idx0, Uint16 idx1, Uint16 idx2, Uint16 colorIndex);
+Polygon polygon(Uint16 idx0, Uint16 idx1, Uint16 idx2, Uint16 colorIndex);
 
 struct Model{
   Vertex *vertex;
   size_t vertexCount;
-  Poly *poly;
+  Polygon *polygon;
   size_t polyCount;
 };
 typedef struct Model Model;
 
-Model model(Vertex *vertex, size_t vertexCount, Poly *poly, size_t polyCount);
+Model model(Vertex *vertex, size_t vertexCount, Polygon *polygon, size_t polyCount);
 
 struct Object{
   Model *model;

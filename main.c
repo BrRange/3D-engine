@@ -2,7 +2,9 @@
 #include "fold.c"
 #include "arena.c"
 #include "sdlFrame.c"
-#include "icosphere.c"
+#include "Models/icosphereModel.c"
+#include "Models/cubeModel.c"
+#include "Models/crystalModel.c"
 #include "eventHandler.h"
 
 #define arrLen(_arr) (sizeof(_arr) / sizeof(*(_arr)))
@@ -18,21 +20,19 @@ void tick(SDL_Renderer *rend, void **args){
 
   float deltaT = *dt / 1000000.f;
 
-  object_rotateY(objs, deltaT / SDL_PI_F / 200.f);
+  object_rotateY(objs, deltaT * 2.f * SDL_PI_F / 2000.f);
 
-  float speed = KeyboardHandler_hasKey(menu->keyboardH, SDLK_LSHIFT) ? 1.f / 6.f : 1.f / 60.f;
+  float speed = KeyboardHandler_hasKey(menu->keyboardH, SDLK_LSHIFT) ? 5.f / 6.f : 5.f / 60.f;
 
   SDL_FPoint mouseM = MouseHandler_getMovement(menu->mouseH);
 
   camera_rotate(cam, mouseM.x * 0.01f, mouseM.y * 0.01f);
-  if(KeyboardHandler_hasKey(menu->keyboardH, SDLK_W)) camera_move(cam, vertex(0, 0, speed));
-  if(KeyboardHandler_hasKey(menu->keyboardH, SDLK_S)) camera_move(cam, vertex(0, 0, -speed));
-  if(KeyboardHandler_hasKey(menu->keyboardH, SDLK_A)) camera_move(cam, vertex(-speed, 0, 0));
-  if(KeyboardHandler_hasKey(menu->keyboardH, SDLK_D)) camera_move(cam, vertex(speed, 0, 0));
-  if(KeyboardHandler_hasKey(menu->keyboardH, SDLK_SPACE)) camera_move(cam, vertex(0, -speed, 0));
-  if(KeyboardHandler_hasKey(menu->keyboardH, SDLK_LCTRL)) camera_move(cam, vertex(0, speed, 0));
-
-  object_move(objs+1, vertex(cam->pos.x - objs[1].pos.x, cam->pos.y - objs[1].pos.y, cam->pos.z + 5.f - objs[1].pos.z));
+  if(KeyboardHandler_hasKey(menu->keyboardH, SDLK_W)) camera_moveRel(cam, vertex(0, 0, speed));
+  if(KeyboardHandler_hasKey(menu->keyboardH, SDLK_S)) camera_moveRel(cam, vertex(0, 0, -speed));
+  if(KeyboardHandler_hasKey(menu->keyboardH, SDLK_A)) camera_moveRel(cam, vertex(-speed, 0, 0));
+  if(KeyboardHandler_hasKey(menu->keyboardH, SDLK_D)) camera_moveRel(cam, vertex(speed, 0, 0));
+  if(KeyboardHandler_hasKey(menu->keyboardH, SDLK_SPACE)) camera_moveRel(cam, vertex(0, -speed, 0));
+  if(KeyboardHandler_hasKey(menu->keyboardH, SDLK_LCTRL)) camera_moveRel(cam, vertex(0, speed, 0));
 }
 
 void render(SDL_Renderer *rend, void **args){
@@ -65,58 +65,20 @@ int main(){
   SDL_GetCurrentTime(&start);
   SDL_srand(start);
 
-  Vertex cubeVert[] = {
-    vertex(0.5f, 0.5f, 0.5f),
-    vertex(0.5f, 0.5f, -0.5f),
-    vertex(0.5f, -0.5f, 0.5f),
-    vertex(0.5f, -0.5f, -0.5f),
-    vertex(-0.5f, 0.5f, 0.5f),
-    vertex(-0.5f, 0.5f, -0.5f),
-    vertex(-0.5f, -0.5f, 0.5f),
-    vertex(-0.5f, -0.5f, -0.5f),
-  };
+  Vertex cryVert[6];
 
-  Vertex cryVert[] = {
-    vertex(0.5f, 0.f, 0.5f),
-    vertex(0.5f, 0.f, -0.5f),
-    vertex(-0.5f, 0.f, 0.5f),
-    vertex(-0.5f, 0.f, -0.5f),
-    vertex(0.f, 1.f, 0.f),
-    vertex(0.f, -1.f, 0.f),
-  };
+  Vertex cubeVert[8];
 
   Vertex icoVert[12];
 
-  Poly cryPoly[] = {
-    poly(0, 1, 4, 0),
-    poly(1, 3, 4, 0),
-    poly(2, 3, 4, 0),
-    poly(0, 2, 4, 0),
-    poly(0, 1, 5, 0),
-    poly(1, 3, 5, 0),
-    poly(2, 3, 5, 0),
-    poly(0, 2, 5, 0),
-  };
+  Polygon cryPoly[8];
 
-  Poly cubePoly[] = {
-    poly(0, 1, 2, 0),
-    poly(1, 2, 3, 0),
-    poly(0, 1, 4, 0),
-    poly(1, 4, 5, 0),
-    poly(0, 2, 4, 0),
-    poly(2, 4, 6, 0),
-    poly(3, 6, 7, 0),
-    poly(2, 3, 6, 0),
-    poly(4, 5, 6, 0),
-    poly(5, 6, 7, 0),
-    poly(3, 5, 7, 0),
-    poly(1, 3, 5, 0),
-  };
+  Polygon cubePoly[12];
 
-  Poly icoPoly[20];
+  Polygon icoPoly[20];
 
-  Model cryModel = model(cryVert, arrLen(cryVert), cryPoly, arrLen(cryPoly));
-  Model cubeModel = model(cubeVert, arrLen(cubeVert), cubePoly, arrLen(cubePoly));
+  Model cryModel = crystal_gen(cryVert, cryPoly, 0.01f);
+  Model cubeModel = cube_gen(cubeVert, cubePoly);
   Model icoModel = icosphere_gen(icoVert, icoPoly, 0);
 
   KeyboardHandler kbHandler = {0};

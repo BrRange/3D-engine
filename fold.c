@@ -47,6 +47,26 @@ Vertex vertex_getClip(Vertex clip, Vertex unclip, float z){
   return v;
 }
 
+Vertex vertex_add(Vertex a, Vertex b){
+  return vertex(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+Vertex vertex_sub(Vertex a, Vertex b){
+  return vertex(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+Vertex vertex_scalarMul(Vertex a, float scalar){
+  return vertex(a.x * scalar, a.y * scalar, a.z * scalar);
+}
+
+Vertex vertex_scalarDiv(Vertex a, float scalar){
+  return vertex(a.x / scalar, a.y / scalar, a.z / scalar);
+}
+
+float vertex_dot(Vertex a, Vertex b){
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
 Camera camera(Vertex v, float farPlane, float nearPlane, float fieldView){
   Camera cam = {
     .pos = v,
@@ -62,16 +82,20 @@ void camera_rotate(Camera *cam, float dYaw, float dPitch){
   cam->pitch = SDL_min(SDL_max(cam->pitch + dPitch, SDL_PI_F / -2.f), SDL_PI_F / 2.f);
 }
 
-void camera_move(Camera *cam, Vertex dPos){
-  float
-    fx = SDL_cosf(cam->pitch) * SDL_sinf(cam->yaw),
-    fy = SDL_sinf(cam->pitch),
-    fz = SDL_cosf(cam->pitch) * SDL_cosf(cam->yaw),
-    rx = SDL_sinf(cam->yaw + SDL_PI_F / 2.f),
-    rz = SDL_cosf(cam->yaw + SDL_PI_F / 2.f);
-  cam->pos.x += dPos.x * rx + dPos.z * fx;
-  cam->pos.y += dPos.z * fy + dPos.y;
-  cam->pos.z += dPos.x * rz + dPos.z * fz;
+void camera_moveAbs(Camera *cam, Vertex dPos){
+  cam->pos = vertex_add(cam->pos, dPos);
+}
+
+void camera_moveRel(Camera *cam, Vertex dPos){
+  float ps, pc, ys, yc;
+  sincosf(cam->pitch, &ps, &pc);
+  sincosf(cam->yaw, &ys, &yc);
+  cam->pos.x += dPos.x * yc
+                + dPos.y * -ys * ps
+                + dPos.z * pc * ys;
+
+    cam->pos.y += dPos.y * pc + dPos.z * ps;
+    cam->pos.z += dPos.x * -ys + dPos.y * -yc * ps + dPos.z * pc * yc;
 }
 
 Vertex vertex_onCamera(Vertex *v, Camera *cam, Vertex offset, Vertex rot, float scale){
@@ -103,19 +127,19 @@ Color color(Uint8 r, Uint8 g, Uint8 b, Uint8 a){
   return c;
 }
 
-Poly poly(Uint16 idx0, Uint16 idx1, Uint16 idx2, Uint16 colorIndex){
-  Poly p = {
+Polygon polygon(Uint16 idx0, Uint16 idx1, Uint16 idx2, Uint16 colorIndex){
+  Polygon p = {
     .idx = {idx0, idx1, idx2},
     .colorIndex = colorIndex
   };
   return p;
 }
 
-Model model(Vertex *vertex, size_t vertexCount, Poly *poly, size_t polyCount){
+Model model(Vertex *vertex, size_t vertexCount, Polygon *polygon, size_t polyCount){
   Model mdl = {
     .vertex = vertex,
     .vertexCount = vertexCount,
-    .poly = poly,
+    .polygon = polygon,
     .polyCount = polyCount
   };
   return mdl;
@@ -156,13 +180,13 @@ void object_render(Object *obj, SDL_Renderer *rend, Camera *cam, float cx, float
 
   for(size_t i = 0; i < obj->model->polyCount; ++i){
     clipCount = unclipCount = 0;
-    Poly poly = obj->model->poly[i];
-    Color color = obj->palette[poly.colorIndex];
+    Polygon polygon = obj->model->polygon[i];
+    Color color = obj->palette[polygon.colorIndex];
     SDL_SetRenderDrawColor(rend, color.r, color.g, color.b, color.a);
     Vertex proj[3] = {
-      vertex_onCamera(vert + poly.idx[0], cam, obj->pos, obj->rot, scale),
-      vertex_onCamera(vert + poly.idx[1], cam, obj->pos, obj->rot, scale),
-      vertex_onCamera(vert + poly.idx[2], cam, obj->pos, obj->rot, scale)
+      vertex_onCamera(vert + polygon.idx[0], cam, obj->pos, obj->rot, scale),
+      vertex_onCamera(vert + polygon.idx[1], cam, obj->pos, obj->rot, scale),
+      vertex_onCamera(vert + polygon.idx[2], cam, obj->pos, obj->rot, scale)
     };
 
     proj[0].x *= cam->fieldView, proj[0].y *= cam->fieldView;
