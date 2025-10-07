@@ -103,27 +103,28 @@ Color color(Uint8 r, Uint8 g, Uint8 b, Uint8 a){
   return c;
 }
 
-Poly poly(Vertex *v1, Vertex *v2, Vertex *v3){
+Poly poly(Uint16 idx0, Uint16 idx1, Uint16 idx2, Uint16 colorIndex){
   Poly p = {
-    .vert = {v1, v2, v3}
+    .idx = {idx0, idx1, idx2},
+    .colorIndex = colorIndex
   };
   return p;
 }
 
-Model model(Vertex *vertex, size_t vertexCount, Poly *poly, Color *color, size_t polyCount){
+Model model(Vertex *vertex, size_t vertexCount, Poly *poly, size_t polyCount){
   Model mdl = {
     .vertex = vertex,
     .vertexCount = vertexCount,
     .poly = poly,
-    .color = color,
     .polyCount = polyCount
   };
   return mdl;
 }
 
-Object object(Model *model, Vertex pos, float scale){
+Object object(Model *model, Color *palette, Vertex pos, float scale){
   Object obj = {
     .model = model,
+    .palette = palette,
     .pos = pos,
     .scale = scale
   };
@@ -149,19 +150,19 @@ void object_move(Object *obj, Vertex dv){
 }
 
 void object_render(Object *obj, SDL_Renderer *rend, Camera *cam, float cx, float cy){
-  Vertex clipped[3], unclipped[3];
+  Vertex *vert = obj->model->vertex, clipped[3], unclipped[3];
   Uint8 clipCount, unclipCount;
   float scale = obj->scale, s, c;
 
   for(size_t i = 0; i < obj->model->polyCount; ++i){
     clipCount = unclipCount = 0;
-    Color color = obj->model->color[i];
     Poly poly = obj->model->poly[i];
+    Color color = obj->palette[poly.colorIndex];
     SDL_SetRenderDrawColor(rend, color.r, color.g, color.b, color.a);
     Vertex proj[3] = {
-      vertex_onCamera(poly.vert[0], cam, obj->pos, obj->rot, scale),
-      vertex_onCamera(poly.vert[1], cam, obj->pos, obj->rot, scale),
-      vertex_onCamera(poly.vert[2], cam, obj->pos, obj->rot, scale)
+      vertex_onCamera(vert + poly.idx[0], cam, obj->pos, obj->rot, scale),
+      vertex_onCamera(vert + poly.idx[1], cam, obj->pos, obj->rot, scale),
+      vertex_onCamera(vert + poly.idx[2], cam, obj->pos, obj->rot, scale)
     };
 
     proj[0].x *= cam->fieldView, proj[0].y *= cam->fieldView;

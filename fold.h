@@ -44,31 +44,32 @@ typedef union Color Color;
 Color color(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 
 struct Poly{
-  Vertex *vert[3];
+  Uint16 idx[3];
+  Uint16 colorIndex;
 };
 typedef struct Poly Poly;
 
-Poly poly(Vertex *v1, Vertex *v2, Vertex *v3);
+Poly poly(Uint16 idx0, Uint16 idx1, Uint16 idx2, Uint16 colorIndex);
 
 struct Model{
   Vertex *vertex;
   size_t vertexCount;
   Poly *poly;
-  Color *color;
   size_t polyCount;
 };
 typedef struct Model Model;
 
-Model model(Vertex *vertex, size_t vertexCount, Poly *poly, Color *color, size_t polyCount);
+Model model(Vertex *vertex, size_t vertexCount, Poly *poly, size_t polyCount);
 
 struct Object{
   Model *model;
+  Color *palette;
   Vertex pos, rot;
   float scale;
 };
 typedef struct Object Object;
 
-Object object(Model *model, Vertex rCenter, float scale);
+Object object(Model *model, Color *palette, Vertex rCenter, float scale);
 
 void object_rotateX(Object *obj, float ang);
 
