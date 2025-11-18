@@ -2,9 +2,9 @@
 
 Model icosphere_gen(Vertex vert[12], Polygon poly[20], unsigned subDiv){
     unsigned curVert = 12, curPol = 20;
-    const float w = 0.025f * sqrtf(5.f + sqrtf(5.f)) * (5.f * sqrtf(2.f) - sqrtf(10.f));
-    const float h = w * (1.f + sqrtf(5)) * 0.5f;
-    float s, c;
+    const f32 w = 0.025f * sqrtf(5.f + sqrtf(5.f)) * (5.f * sqrtf(2.f) - sqrtf(10.f));
+    const f32 h = w * (1.f + sqrtf(5)) * 0.5f;
+    f32 s, c;
     sincosf(SDL_PI_F / 2.f, &s, &c);
     vert[0] = vertex(-w, -h, 0),
     vert[1] = vertex(-w, h, 0),
@@ -16,7 +16,7 @@ Model icosphere_gen(Vertex vert[12], Polygon poly[20], unsigned subDiv){
         vert[i + 8] = vertex_rotZ(vert + i, s, c);
         vert[i + 8] = vertex_rotX(vert + i + 8, s, c);
     }
-    Uint16 t1 = 0, t2 = 4, t3 = 8;
+    u16 t1 = 0, t2 = 4, t3 = 8;
     poly[0]  = polygon(t1+0, t1+3, t2+0, 0);
     poly[1]  = polygon(t1+0, t1+3, t2+1, 0);
     poly[2]  = polygon(t1+0, t2+0, t3+1, 0);

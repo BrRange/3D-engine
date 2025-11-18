@@ -1,6 +1,6 @@
 #include "crystalModel.h"
 
-Model crystal_gen(Vertex vert[6], Polygon poly[8], float span){
+Model crystal_gen(Vertex vert[6], Polygon poly[8], f32 span){
     vert[0] = vertex(0.f, -0.5f, 0.f);
     vert[1] = vertex(0.f, 0.5f, 0.f);
     vert[2] = vertex(-span, 0.f, -span);

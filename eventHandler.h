@@ -1,4 +1,4 @@
-#include "sdlFrameGUI.h"
+#include "sdlFrame.h"
 
 void handleEvents(SDL_Event *eve, MenuState *menu){
   while(SDL_PollEvent(eve))

@@ -1,7 +1,7 @@
 #include "cubeModel.h"
 
 Model cube_gen(Vertex vert[8], Polygon poly[12]){
-  Uint32 i;
+  u32 i;
   for(i = 0; i < 8; ++i)
     vert[i].x = i & 0b1 ? -0.5f : 0.5f,
     vert[i].y = i & 0b10 ? -0.5f : 0.5f,

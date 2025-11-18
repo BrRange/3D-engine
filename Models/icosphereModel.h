@@ -1,7 +1,7 @@
-#include "../fold.h"
-
 #ifndef ICOSPHERE_MODEL_H_
 #define ICOSPHERE_MODEL_H_
+
+#include "../fold.h"
 
 /**
  * \param vert [12], doubles in size for each subDivision

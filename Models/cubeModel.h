@@ -1,7 +1,7 @@
-#include "../fold.h"
-
 #ifndef CUBE_MODEL_H_
 #define CUBE_MODEL_H_
+
+#include "../fold.h"
 
 /**
  * \param vert [8]
