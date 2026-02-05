@@ -92,14 +92,12 @@ MenuState MenuState_new(MenuFunc fnTick, MenuFunc fnRender, KeyboardHandler *key
     .tick = fnTick,
     .render = fnRender,
     .keyboardH = keyboardH,
-    .mouseH = mouseH,
-    .memory = Arena_new(auxBytes)
+    .mouseH = mouseH
   };
   return menu;
 }
 
 void MenuState_destroy(MenuState *menu){
-  Arena_destroy(&menu->memory);
   *menu = (MenuState){0};
 }
 

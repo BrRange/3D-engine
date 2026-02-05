@@ -12,7 +12,7 @@ union Vertex{
 };
 typedef union Vertex Vertex;
 
-Vertex vertex(f32 x, f32 y, f32 z);
+Vertex vertex_new(f32 x, f32 y, f32 z);
 
 Vertex vertex_rotX(Vertex *v, f32 s, f32 c);
 
@@ -69,7 +69,7 @@ struct Polygon{
 };
 typedef struct Polygon Polygon;
 
-Polygon polygon(u16 idx0, u16 idx1, u16 idx2, u16 colorIndex);
+Polygon polygon_new(u16 idx0, u16 idx1, u16 idx2, u16 colorIndex);
 
 struct Model{
   Vertex *vertex;
@@ -79,7 +79,7 @@ struct Model{
 };
 typedef struct Model Model;
 
-Model model(Vertex *vertex, size_t vertexCount, Polygon *polygon, size_t polyCount);
+Model model(Vertex *vertex_new, size_t vertexCount, Polygon *polygon_new, size_t polyCount);
 
 struct Object{
   Model *model;
@@ -89,7 +89,7 @@ struct Object{
 };
 typedef struct Object Object;
 
-Object object(Model *model, Color *palette, Vertex rCenter, f32 scale);
+Object object_new(Model *model, Color *palette, Vertex rCenter, f32 scale);
 
 void object_rotateX(Object *obj, f32 ang);
 
@@ -101,6 +101,6 @@ void object_move(Object *obj, Vertex dv);
 
 void object_render(Object *obj, SDL_Renderer *rend, Camera *cam, f32 cx, f32 cy);
 
-int object_distCompare(Camera *ref, Object *obj1, Object *obj2);
+int object_distCompare(void **ref, u32 *idx1, u32 *idx2);
 
 #endif

@@ -6,10 +6,10 @@ Model icosphere_gen(Vertex vert[12], Polygon poly[20], unsigned subDiv){
     const f32 h = w * (1.f + sqrtf(5)) * 0.5f;
     f32 s, c;
     sincosf(SDL_PI_F / 2.f, &s, &c);
-    vert[0] = vertex(-w, -h, 0),
-    vert[1] = vertex(-w, h, 0),
-    vert[2] = vertex(w, h, 0),
-    vert[3] = vertex(w, -h, 0);
+    vert[0] = vertex_new(-w, -h, 0),
+    vert[1] = vertex_new(-w, h, 0),
+    vert[2] = vertex_new(w, h, 0),
+    vert[3] = vertex_new(w, -h, 0);
     for(int i = 0; i < 4; ++i){
         vert[i + 4] = vertex_rotX(vert + i, s, c);
         vert[i + 4] = vertex_rotZ(vert + i + 4, s, c);
@@ -17,25 +17,25 @@ Model icosphere_gen(Vertex vert[12], Polygon poly[20], unsigned subDiv){
         vert[i + 8] = vertex_rotX(vert + i + 8, s, c);
     }
     u16 t1 = 0, t2 = 4, t3 = 8;
-    poly[0]  = polygon(t1+0, t1+3, t2+0, 0);
-    poly[1]  = polygon(t1+0, t1+3, t2+1, 0);
-    poly[2]  = polygon(t1+0, t2+0, t3+1, 0);
-    poly[3]  = polygon(t1+0, t3+1, t3+2, 0);
-    poly[4]  = polygon(t1+0, t2+1, t3+2, 0);
-    poly[5]  = polygon(t1+1, t2+3, t3+1, 0);
-    poly[6]  = polygon(t2+0, t2+3, t3+1, 0);
-    poly[7]  = polygon(t1+1, t3+1, t3+2, 0);
-    poly[8]  = polygon(t1+1, t2+2, t3+2, 0);
-    poly[9]  = polygon(t2+1, t2+2, t3+2, 0);
-    poly[10] = polygon(t1+1, t1+2, t2+3, 0);
-    poly[11] = polygon(t1+1, t1+2, t2+2, 0);
-    poly[12] = polygon(t2+0, t2+3, t3+0, 0);
-    poly[13] = polygon(t1+2, t2+3, t3+0, 0);
-    poly[14] = polygon(t1+3, t2+0, t3+0, 0);
-    poly[15] = polygon(t1+2, t3+0, t3+3, 0);
-    poly[16] = polygon(t1+2, t2+2, t3+3, 0);
-    poly[17] = polygon(t1+3, t3+0, t3+3, 0);
-    poly[18] = polygon(t1+3, t2+1, t3+3, 0);
-    poly[19] = polygon(t2+1, t2+2, t3+3, 0);
+    poly[0]  = polygon_new(t1+0, t1+3, t2+0, 0);
+    poly[1]  = polygon_new(t1+0, t1+3, t2+1, 0);
+    poly[2]  = polygon_new(t1+0, t2+0, t3+1, 0);
+    poly[3]  = polygon_new(t1+0, t3+1, t3+2, 0);
+    poly[4]  = polygon_new(t1+0, t2+1, t3+2, 0);
+    poly[5]  = polygon_new(t1+1, t2+3, t3+1, 0);
+    poly[6]  = polygon_new(t2+0, t2+3, t3+1, 0);
+    poly[7]  = polygon_new(t1+1, t3+1, t3+2, 0);
+    poly[8]  = polygon_new(t1+1, t2+2, t3+2, 0);
+    poly[9]  = polygon_new(t2+1, t2+2, t3+2, 0);
+    poly[10] = polygon_new(t1+1, t1+2, t2+3, 0);
+    poly[11] = polygon_new(t1+1, t1+2, t2+2, 0);
+    poly[12] = polygon_new(t2+0, t2+3, t3+0, 0);
+    poly[13] = polygon_new(t1+2, t2+3, t3+0, 0);
+    poly[14] = polygon_new(t1+3, t2+0, t3+0, 0);
+    poly[15] = polygon_new(t1+2, t3+0, t3+3, 0);
+    poly[16] = polygon_new(t1+2, t2+2, t3+3, 0);
+    poly[17] = polygon_new(t1+3, t3+0, t3+3, 0);
+    poly[18] = polygon_new(t1+3, t2+1, t3+3, 0);
+    poly[19] = polygon_new(t2+1, t2+2, t3+3, 0);
     return model(vert, curVert, poly, curPol);
 }

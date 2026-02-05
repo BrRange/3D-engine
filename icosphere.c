@@ -10,10 +10,10 @@ Model icosphere_gen(Vertex vert[12], Poly pol[20], unsigned subDiv){
     const float h = w * (1.f + sqrtf(5)) * 0.5f;
     float s, c;
     sincosf(SDL_PI_F / 2.f, &s, &c);
-    vert[0] = vertex(-w, -h, 0),
-    vert[1] = vertex(-w, h, 0),
-    vert[2] = vertex(w, h, 0),
-    vert[3] = vertex(w, -h, 0);
+    vert[0] = vertex_new(-w, -h, 0),
+    vert[1] = vertex_new(-w, h, 0),
+    vert[2] = vertex_new(w, h, 0),
+    vert[3] = vertex_new(w, -h, 0);
     for(int i = 0; i < 4; ++i){
         vert[i + 4] = vertex_rotX(vert + i, s, c);
         vert[i + 4] = vertex_rotZ(vert + i + 4, s, c);

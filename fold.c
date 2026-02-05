@@ -2,7 +2,7 @@
 #include <SDL3_gfx/SDL3_gfxPrimitives.h>
 #include <math.h>
 
-Vertex vertex(f32 x, f32 y, f32 z){
+Vertex vertex_new(f32 x, f32 y, f32 z){
   Vertex v = {
     .coord = {x, y, z}
   };
@@ -53,19 +53,19 @@ int vertex_projectionCompare(Vertex *vert1, Vertex *vert2){
 }
 
 Vertex vertex_add(Vertex a, Vertex b){
-  return vertex(a.x + b.x, a.y + b.y, a.z + b.z);
+  return vertex_new(a.x + b.x, a.y + b.y, a.z + b.z);
 }
 
 Vertex vertex_sub(Vertex a, Vertex b){
-  return vertex(a.x - b.x, a.y - b.y, a.z - b.z);
+  return vertex_new(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
 Vertex vertex_scalarMul(Vertex a, f32 scalar){
-  return vertex(a.x * scalar, a.y * scalar, a.z * scalar);
+  return vertex_new(a.x * scalar, a.y * scalar, a.z * scalar);
 }
 
 Vertex vertex_scalarDiv(Vertex a, f32 scalar){
-  return vertex(a.x / scalar, a.y / scalar, a.z / scalar);
+  return vertex_new(a.x / scalar, a.y / scalar, a.z / scalar);
 }
 
 f32 vertex_dot(Vertex a, Vertex b){
@@ -132,7 +132,7 @@ Color color(f32 r, f32 g, f32 b, f32 a){
   return c;
 }
 
-Polygon polygon(u16 idx0, u16 idx1, u16 idx2, u16 colorIndex){
+Polygon polygon_new(u16 idx0, u16 idx1, u16 idx2, u16 colorIndex){
   Polygon p = {
     .idx = {idx0, idx1, idx2},
     .colorIndex = colorIndex
@@ -140,17 +140,17 @@ Polygon polygon(u16 idx0, u16 idx1, u16 idx2, u16 colorIndex){
   return p;
 }
 
-Model model(Vertex *vertex, size_t vertexCount, Polygon *polygon, size_t polyCount){
+Model model(Vertex *vertex_new, size_t vertexCount, Polygon *polygon_new, size_t polyCount){
   Model mdl = {
-    .vertex = vertex,
+    .vertex = vertex_new,
     .vertexCount = vertexCount,
-    .polygon = polygon,
+    .polygon = polygon_new,
     .polyCount = polyCount
   };
   return mdl;
 }
 
-Object object(Model *model, Color *palette, Vertex pos, f32 scale){
+Object object_new(Model *model, Color *palette, Vertex pos, f32 scale){
   Object obj = {
     .model = model,
     .palette = palette,
@@ -195,12 +195,12 @@ void object_render(Object *obj, SDL_Renderer *rend, Camera *cam, f32 cx, f32 cy)
 
   for(size_t i = 0; i < obj->model->polyCount; ++i){
     clipCount = unclipCount = 0;
-    Polygon polygon = obj->model->polygon[i];
-    Color color = obj->palette[polygon.colorIndex];
+    Polygon polygon_new = obj->model->polygon[i];
+    Color color = obj->palette[polygon_new.colorIndex];
     Vertex proj[4] = {
-      vertex_onCamera(vert + polygon.idx[0], cam, obj->pos, obj->rot, obj->scale),
-      vertex_onCamera(vert + polygon.idx[1], cam, obj->pos, obj->rot, obj->scale),
-      vertex_onCamera(vert + polygon.idx[2], cam, obj->pos, obj->rot, obj->scale)
+      vertex_onCamera(vert + polygon_new.idx[0], cam, obj->pos, obj->rot, obj->scale),
+      vertex_onCamera(vert + polygon_new.idx[1], cam, obj->pos, obj->rot, obj->scale),
+      vertex_onCamera(vert + polygon_new.idx[2], cam, obj->pos, obj->rot, obj->scale)
     };
 
     proj[0].x *= cam->fieldView, proj[0].y *= cam->fieldView;
@@ -250,10 +250,12 @@ void object_render(Object *obj, SDL_Renderer *rend, Camera *cam, f32 cx, f32 cy)
   }
 }
 
-int object_distCompare(Camera *ref, Object *obj1, Object *obj2){
-  Vertex diff = vertex_sub(obj1->pos, ref->pos);
+int object_distCompare(void **ref, u32 *idx1, u32 *idx2){
+  Camera *cam = ref[0];
+  Object *objs = ref[1];
+  Vertex diff = vertex_sub(objs[*idx1].pos, cam->pos);
   f32 distSq1 = vertex_dot(diff, diff);
-  diff = vertex_sub(obj2->pos, ref->pos);
+  diff = vertex_sub(objs[*idx2].pos, cam->pos);
   f32 distSq2 = vertex_dot(diff, diff);
   return distSq1 > distSq2 ? -1 : 1;
 }

@@ -2,7 +2,6 @@
 #define SDL_FRAME_H_
 
 #include <SDL3/SDL.h>
-#include "arena.h"
 
 struct KeyboardHandler{
   SDL_Keycode keys[6];
@@ -71,7 +70,6 @@ struct MenuState{
   MenuFunc tick, render;
   KeyboardHandler *keyboardH;
   MouseHandler *mouseH;
-  Arena memory;
 };
 typedef struct MenuState MenuState;
 
