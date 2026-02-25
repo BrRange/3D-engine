@@ -36,6 +36,10 @@ Vertex vertex_scalarDiv(Vertex a, f32 scalar);
 
 f32 vertex_dot(Vertex a, Vertex b);
 
+Vertex vertex_cross(Vertex a, Vertex b);
+
+f32 vertex_magnitude(Vertex a);
+
 struct Camera{
   Vertex pos;
   f32 farPlane, nearPlane, fieldView;
@@ -45,13 +49,17 @@ typedef struct Camera Camera;
 
 Camera camera(Vertex v, f32 farPlane, f32 nearPlane, f32 fieldView);
 
+Vertex camera_viewVertex(const Camera *cam);
+
 void camera_rotate(Camera *cam, f32 dYaw, f32 dPitch);
+
+void camera_rotateUnbound(Camera *cam, f32 dYaw, f32 dPitch);
 
 void camera_moveAbs(Camera *cam, Vertex dPos);
 
 void camera_moveRel(Camera *cam, Vertex dPos);
 
-Vertex vertex_onCamera(Vertex *v, Camera *cam, Vertex offset, Vertex rot, f32 scale);
+Vertex vertex_onCamera(const Vertex *restrict v, const Camera *restrict cam, const Vertex offset, const Vertex rot, f32 scale);
 
 union Color{
   f32 rgba[4];

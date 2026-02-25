@@ -9,5 +9,6 @@
 #define Color_Magenta color(1, 0, 1, 1)
 #define Color_Cyan color(0, 1, 1, 1)
 #define Color_White color(1, 1, 1, 1)
+#define Color_Back color(0, 0, 0, 0)
 
 #endif

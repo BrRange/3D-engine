@@ -72,6 +72,14 @@ f32 vertex_dot(Vertex a, Vertex b){
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
+Vertex vertex_cross(Vertex a, Vertex b){
+  return vertex_new(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+}
+
+f32 vertex_magnitude(Vertex a){
+  return hypotf(hypotf(a.x, a.y), a.z);
+}
+
 Camera camera(Vertex v, f32 farPlane, f32 nearPlane, f32 fieldView){
   Camera cam = {
     .pos = v,
@@ -82,9 +90,22 @@ Camera camera(Vertex v, f32 farPlane, f32 nearPlane, f32 fieldView){
   return cam;
 }
 
+Vertex camera_viewVertex(const Camera *cam){
+  f32 ps, pc, ys, yc;
+  sincosf(cam->yaw, &ys, &yc);
+  sincosf(cam->pitch, &ps, &pc);
+  
+  return vertex_new(pc * ys, ps, pc * yc);
+}
+
 void camera_rotate(Camera *cam, f32 dYaw, f32 dPitch){
   cam->yaw = SDL_fmodf(cam->yaw + dYaw, 2.f * SDL_PI_F);
-  cam->pitch = SDL_min(SDL_max(cam->pitch + dPitch, SDL_PI_F / -2.f), SDL_PI_F / 2.f);
+  cam->pitch = SDL_min(SDL_max(cam->pitch + dPitch, SDL_PI_F / -2.01f), SDL_PI_F / 2.01f);
+}
+
+void camera_rotateUnbound(Camera *cam, f32 dYaw, f32 dPitch){
+  cam->yaw = SDL_fmodf(cam->yaw + dYaw, 2.f * SDL_PI_F);
+  cam->pitch = SDL_fmodf(cam->pitch + dPitch, 2.f * SDL_PI_F);
 }
 
 void camera_moveAbs(Camera *cam, Vertex dPos){
@@ -103,7 +124,7 @@ void camera_moveRel(Camera *cam, Vertex dPos){
     cam->pos.z += dPos.x * -ys + dPos.y * -yc * ps + dPos.z * pc * yc;
 }
 
-Vertex vertex_onCamera(Vertex *v, Camera *cam, Vertex offset, Vertex rot, f32 scale){
+Vertex vertex_onCamera(const Vertex *restrict v, const Camera *restrict cam, const Vertex offset, const Vertex rot, f32 scale){
   Vertex dv = *v;
   f32 s, c;
   sincosf(rot.z, &s, &c);
@@ -178,16 +199,6 @@ void object_move(Object *obj, Vertex dv){
   obj->pos.z += dv.z;
 }
 
-#define ouch(x) (x / (x + 100.f))
-
-f32 colorDamp(f32 x){
-  x /= 100;
-  x = SDL_expf(x);
-  x *= x;
-  x += 1;
-  return 2.f / x;
-}
-
 void object_render(Object *obj, SDL_Renderer *rend, Camera *cam, f32 cx, f32 cy){
   Vertex *vert = obj->model->vertex, clipped[3], unclipped[3];
   SDL_Vertex gradVert[3] = {0};
@@ -196,16 +207,18 @@ void object_render(Object *obj, SDL_Renderer *rend, Camera *cam, f32 cx, f32 cy)
   for(size_t i = 0; i < obj->model->polyCount; ++i){
     clipCount = unclipCount = 0;
     Polygon polygon_new = obj->model->polygon[i];
-    Color color = obj->palette[polygon_new.colorIndex];
+
     Vertex proj[4] = {
       vertex_onCamera(vert + polygon_new.idx[0], cam, obj->pos, obj->rot, obj->scale),
       vertex_onCamera(vert + polygon_new.idx[1], cam, obj->pos, obj->rot, obj->scale),
       vertex_onCamera(vert + polygon_new.idx[2], cam, obj->pos, obj->rot, obj->scale)
     };
-
+    
     proj[0].x *= cam->fieldView, proj[0].y *= cam->fieldView;
     proj[1].x *= cam->fieldView, proj[1].y *= cam->fieldView;
     proj[2].x *= cam->fieldView, proj[2].y *= cam->fieldView;
+    
+    Color color = obj->palette[polygon_new.colorIndex];
 
     for(u8 j = 0; j < 3; ++j)
     if(proj[j].z <= cam->nearPlane) clipped[clipCount++] = proj[j];
