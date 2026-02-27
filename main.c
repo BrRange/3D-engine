@@ -5,6 +5,7 @@
 #include "Models/crystalModel.c"
 #include "Models/cubeModel.c"
 #include "Models/icosphereModel.c"
+#include "collider.c"
 #include "eventHandler.h"
 #include "stdfcolor.h"
 
@@ -17,6 +18,7 @@ typedef struct CommonData{
   Object *objs;
   u32 *renderList;
   usz objCount;
+  Collider *sphere, *pill;
 } CommonData;
 
 void tick(SDL_Renderer *rend, CommonData *data){
@@ -48,6 +50,9 @@ void tick(SDL_Renderer *rend, CommonData *data){
   cameraView = vertex_sub(player->pos, cameraView);
   cameraView = vertex_sub(cameraView, data->cam->pos);
   camera_moveAbs(data->cam, vertex_scalarDiv(cameraView, 4));
+
+  if(collider_collide(data->sphere, data->pill)) data->objs[6].scale = 10;
+  else data->objs[6].scale = 5;
 
   void *sortData[2] = {data->cam, data->objs};
 
@@ -221,6 +226,8 @@ int main(){
   clockAngle += TIMEZONE;
   object_rotateZ(objs + 2, SDL_PI_F / 6 * clockAngle);
 
+  Collider_Sphere playerColl = collider_newSphere(objs + 6, vertex_new(0, 0, 0), objs[6].scale);
+  Collider_Pill secondColl = collider_newPill(objs + 3, vertex_new(0, -100, 0), vertex_new(0, 100, 0), 5);
 
   CommonData data = {
     .deltaT = &dtime,
@@ -229,6 +236,8 @@ int main(){
     .objs = objs,
     .renderList = renderList,
     .objCount = objLen,
+    .sphere = (Collider*)&playerColl,
+    .pill = (Collider*)&secondColl
   };
 
   SDL_Event eve = {0};
@@ -249,6 +258,5 @@ int main(){
 
   SDL_DestroyWindow(win);
   SDL_DestroyRenderer(rend);
-  SDL_assert(!"Program was in debug mode");
-  SDL_Log("Normal execution");
+  SDL_assert((SDL_Log("Normal execution"), 0));
 }

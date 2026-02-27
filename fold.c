@@ -36,6 +36,18 @@ Vertex vertex_rotZ(Vertex *v, f32 s, f32 c){
   return rot;
 }
 
+Vertex vertex_rotate(Vertex *v, Vertex angles){
+  Vertex rot = *v;
+  float s, c;
+  sincosf(angles.z, &s, &c);
+  vertex_rotZ(&rot, s, c);
+  sincosf(angles.y, &s, &c);
+  vertex_rotY(&rot, s, c);
+  sincosf(angles.x, &s, &c);
+  vertex_rotX(&rot, s, c);
+  return rot;
+}
+
 Vertex vertex_getClip(Vertex clip, Vertex unclip, f32 z){
   Vertex v = {.z = z};
   f32
@@ -125,20 +137,14 @@ void camera_moveRel(Camera *cam, Vertex dPos){
 }
 
 Vertex vertex_onCamera(const Vertex *restrict v, const Camera *restrict cam, const Vertex offset, const Vertex rot, f32 scale){
-  Vertex dv = *v;
-  f32 s, c;
-  sincosf(rot.z, &s, &c);
-  dv = vertex_rotZ(&dv, s, c);
-  sincosf(rot.y, &s, &c);
-  dv = vertex_rotY(&dv, s, c);
-  sincosf(rot.x, &s, &c);
-  dv = vertex_rotX(&dv, s, c);
-  
+  Vertex dv = vertex_rotate(v, rot);
   
   dv.x = dv.x * scale - cam->pos.x + offset.x,
   dv.y = dv.y * scale - cam->pos.y + offset.y,
   dv.z = dv.z * scale - cam->pos.z + offset.z;
   
+  float s, c;
+
   sincosf(cam->yaw, &s, &c);
   dv = vertex_rotY(&dv, s, c);
 

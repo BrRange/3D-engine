@@ -20,6 +20,8 @@ Vertex vertex_rotY(Vertex *v, f32 s, f32 c);
 
 Vertex vertex_rotZ(Vertex *v, f32 s, f32 c);
 
+Vertex vertex_rotate(Vertex *v, Vertex angles);
+
 Vertex vertex_getClip(Vertex clip, Vertex unclip, f32 z);
 
 int vertex_projectionCompare(Vertex *vert1, Vertex *vert2);
