@@ -2,47 +2,10 @@
 #define FOLD_H_
 
 #include <SDL3/SDL.h>
-#include "rustydef.h"
-
-union Vertex{
-  f32 coord[3];
-  struct{
-    f32 x, y, z;
-  };
-};
-typedef union Vertex Vertex;
-
-Vertex vertex_new(f32 x, f32 y, f32 z);
-
-Vertex vertex_rotX(Vertex *v, f32 s, f32 c);
-
-Vertex vertex_rotY(Vertex *v, f32 s, f32 c);
-
-Vertex vertex_rotZ(Vertex *v, f32 s, f32 c);
-
-Vertex vertex_rotate(Vertex *v, Vertex angles);
-
-Vertex vertex_getClip(Vertex clip, Vertex unclip, f32 z);
-
-int vertex_projectionCompare(Vertex *vert1, Vertex *vert2);
-
-/* Vertex operators */
-
-Vertex vertex_add(Vertex a, Vertex b);
-
-Vertex vertex_sub(Vertex a, Vertex b);
-
-Vertex vertex_scalarMul(Vertex a, f32 scalar);
-
-Vertex vertex_scalarDiv(Vertex a, f32 scalar);
-
-f32 vertex_dot(Vertex a, Vertex b);
-
-Vertex vertex_cross(Vertex a, Vertex b);
-
-f32 vertex_magnitude(Vertex a);
+#include "dataTypes/quaternion.h"
 
 struct Camera{
+  Quaternion rot;
   Vertex pos;
   f32 farPlane, nearPlane, fieldView;
   f32 yaw, pitch;
@@ -61,7 +24,7 @@ void camera_moveAbs(Camera *cam, Vertex dPos);
 
 void camera_moveRel(Camera *cam, Vertex dPos);
 
-Vertex vertex_onCamera(const Vertex *restrict v, const Camera *restrict cam, const Vertex offset, const Vertex rot, f32 scale);
+Vertex vertex_onCamera(const Vertex v, const Camera *restrict cam, const Vertex offset, const Quaternion rot, f32 scale);
 
 union Color{
   f32 rgba[4];
@@ -94,18 +57,15 @@ Model model(Vertex *vertex_new, size_t vertexCount, Polygon *polygon_new, size_t
 struct Object{
   Model *model;
   Color *palette;
-  Vertex pos, rot;
+  Quaternion rot;
+  Vertex pos;
   f32 scale;
 };
 typedef struct Object Object;
 
 Object object_new(Model *model, Color *palette, Vertex rCenter, f32 scale);
 
-void object_rotateX(Object *obj, f32 ang);
-
-void object_rotateY(Object *obj, f32 ang);
-
-void object_rotateZ(Object *obj, f32 ang);
+void object_rotate(Object *obj, Quaternion quat);
 
 void object_move(Object *obj, Vertex dv);
 

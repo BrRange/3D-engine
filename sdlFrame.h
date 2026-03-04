@@ -74,7 +74,7 @@ struct MenuState{
 typedef struct MenuState MenuState;
 
 
-MenuState MenuState_new(MenuFunc fnTick, MenuFunc fnRender, KeyboardHandler*, MouseHandler*, Uint32 auxBytes);
+MenuState MenuState_new(MenuFunc fnTick, MenuFunc fnRender, KeyboardHandler*, MouseHandler*);
 
 void MenuState_destroy(MenuState *menu);
 

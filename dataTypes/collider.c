@@ -51,7 +51,7 @@ bool collider_collide(Collider *a, Collider *b){
       return collider_sphere_pill((Collider_Sphere*)a, (Collider_Pill*)b);
       case ColliderType_Beam:
       return collider_sphere_beam((Collider_Sphere*)a, (Collider_Beam*)b);
-    }
+    } break;
 
     case ColliderType_Pill:
     switch(b->type){
@@ -61,7 +61,7 @@ bool collider_collide(Collider *a, Collider *b){
       return collider_pill_pill((Collider_Pill*)a, (Collider_Pill*)b);
       case ColliderType_Beam:
       return collider_pill_beam((Collider_Pill*)a, (Collider_Beam*)b);
-    }
+    } break;
     
     case ColliderType_Beam:
     switch(b->type){
@@ -71,30 +71,19 @@ bool collider_collide(Collider *a, Collider *b){
       return collider_pill_beam((Collider_Pill*)b, (Collider_Beam*)a);
       case ColliderType_Beam:
       return collider_beam_beam((Collider_Beam*)a, (Collider_Beam*)b);
-    }
+    } break;
   }
   return false;
 }
 
 bool collider_sphere_sphere(Collider_Sphere *a, Collider_Sphere *b){
-  float s, c;
   Vertex aPos, bPos;
 
   aPos = vertex_add(a->base.anchor->pos, a->base.offset);
-  sincosf(a->base.anchor->rot.z, &s, &c);
-  aPos = vertex_rotZ(&aPos, s, c);
-  sincosf(a->base.anchor->rot.y, &s, &c);
-  aPos = vertex_rotY(&aPos, s, c);
-  sincosf(a->base.anchor->rot.x, &s, &c);
-  aPos = vertex_rotX(&aPos, s, c);
+  aPos = vertex_rotate(aPos, a->base.anchor->rot);
 
   bPos = vertex_add(b->base.anchor->pos, b->base.offset);
-  sincosf(b->base.anchor->rot.z, &s, &c);
-  bPos = vertex_rotX(&bPos, s, c);
-  sincosf(b->base.anchor->rot.y, &s, &c);
-  bPos = vertex_rotY(&bPos, s, c);
-  sincosf(b->base.anchor->rot.x, &s, &c);
-  bPos = vertex_rotZ(&bPos, s, c);
+  bPos = vertex_rotate(bPos, b->base.anchor->rot);
 
   Vertex diff = vertex_sub(aPos, bPos);
   float radius = a->radius + b->radius;
@@ -102,23 +91,15 @@ bool collider_sphere_sphere(Collider_Sphere *a, Collider_Sphere *b){
 }
 
 bool collider_sphere_pill(Collider_Sphere *sphere, Collider_Pill *pill){
-  float s, c;
   Vertex spherePos, pillPos[2];
   
   spherePos = vertex_add(sphere->base.anchor->pos, sphere->base.offset);
-  spherePos = vertex_rotate(&spherePos, sphere->base.anchor->rot);
+  spherePos = vertex_rotate(spherePos, sphere->base.anchor->rot);
 
   pillPos[0] = vertex_add(pill->base.anchor->pos, pill->base.offset);
   pillPos[1] = vertex_add(pill->base.anchor->pos, pill->extension);
-  sincosf(pill->base.anchor->rot.z, &s, &c);
-  pillPos[0] = vertex_rotZ(pillPos + 0, s, c);
-  pillPos[1] = vertex_rotZ(pillPos + 1, s, c);
-  sincosf(pill->base.anchor->rot.y, &s, &c);
-  pillPos[0] = vertex_rotY(pillPos + 0, s, c);
-  pillPos[1] = vertex_rotY(pillPos + 1, s, c);
-  sincosf(pill->base.anchor->rot.x, &s, &c);
-  pillPos[0] = vertex_rotX(pillPos + 0, s, c);
-  pillPos[1] = vertex_rotX(pillPos + 1, s, c);
+  pillPos[0] = vertex_rotate(pillPos[0], pill->base.anchor->rot);
+  pillPos[1] = vertex_rotate(pillPos[1], pill->base.anchor->rot);
   
   Vertex line = vertex_sub(pillPos[0], pillPos[1]);
   Vertex proj = vertex_sub(pillPos[0], spherePos);
@@ -137,10 +118,10 @@ bool collider_sphere_beam(Collider_Sphere *sphere, Collider_Beam *beam){
   Vertex spherePos, beamPos;
 
   spherePos = vertex_add(sphere->base.anchor->pos, sphere->base.offset);
-  spherePos = vertex_rotate(&sphere, sphere->base.anchor->rot);
+  spherePos = vertex_rotate(spherePos, sphere->base.anchor->rot);
 
   beamPos = vertex_add(sphere->base.anchor->pos, sphere->base.offset);
-  beamPos = vertex_rotate(&sphere, sphere->base.anchor->rot);
+  beamPos = vertex_rotate(spherePos, sphere->base.anchor->rot);
   beamPos = vertex_sub(beamPos, spherePos);
 
   float angularDist, linearDist = vertex_dot(beamPos, beamPos), radius = sphere->radius;
@@ -153,4 +134,22 @@ bool collider_sphere_beam(Collider_Sphere *sphere, Collider_Beam *beam){
   if(parallelism >= 0) return false;
 
   return linearDist - radius <= angularDist * parallelism;
+}
+
+bool collider_pill_pill(Collider_Pill *a, Collider_Pill *b){
+  (void) a;
+  (void) b;
+  return false;
+}
+
+bool collider_pill_beam(Collider_Pill *pill, Collider_Beam *beam){
+  (void) pill;
+  (void) beam;
+  return false;
+}
+
+bool collider_beam_beam(Collider_Beam *a, Collider_Beam *b){
+  (void) a;
+  (void) b;
+  return false;
 }

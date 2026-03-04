@@ -2,96 +2,6 @@
 #include <SDL3_gfx/SDL3_gfxPrimitives.h>
 #include <math.h>
 
-Vertex vertex_new(f32 x, f32 y, f32 z){
-  Vertex v = {
-    .coord = {x, y, z}
-  };
-  return v;
-}
-
-Vertex vertex_rotX(Vertex *v, f32 s, f32 c){
-  Vertex rot = {
-    .x = v->x,
-    .y = v->y * c - v->z * s,
-    .z = v->y * s + v->z * c
-  };
-  return rot;
-}
-
-Vertex vertex_rotY(Vertex *v, f32 s, f32 c){
-  Vertex rot = {
-    .x = v->x * c - v->z * s,
-    .y = v->y,
-    .z = v->x * s + v->z * c
-  };
-  return rot;
-}
-
-Vertex vertex_rotZ(Vertex *v, f32 s, f32 c){
-  Vertex rot = {
-    .x = v->x * c - v->y * s,
-    .y = v->x * s + v->y * c,
-    .z = v->z
-  };
-  return rot;
-}
-
-Vertex vertex_rotate(Vertex *v, Vertex angles){
-  Vertex rot = *v;
-  float s, c;
-  sincosf(angles.z, &s, &c);
-  vertex_rotZ(&rot, s, c);
-  sincosf(angles.y, &s, &c);
-  vertex_rotY(&rot, s, c);
-  sincosf(angles.x, &s, &c);
-  vertex_rotX(&rot, s, c);
-  return rot;
-}
-
-Vertex vertex_getClip(Vertex clip, Vertex unclip, f32 z){
-  Vertex v = {.z = z};
-  f32
-    dx = unclip.x - clip.x,
-    dy = unclip.y - clip.y,
-    dz = unclip.z - clip.z;
-  if(dz == 0.f) dz = 1e-6f;
-  v.x = dx / dz * (z - clip.z) + clip.x;
-  v.y = dy / dz * (z - clip.z) + clip.y;
-  return v;
-}
-
-int vertex_projectionCompare(Vertex *vert1, Vertex *vert2){
-  return vert2->z - vert1->z;
-}
-
-Vertex vertex_add(Vertex a, Vertex b){
-  return vertex_new(a.x + b.x, a.y + b.y, a.z + b.z);
-}
-
-Vertex vertex_sub(Vertex a, Vertex b){
-  return vertex_new(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
-Vertex vertex_scalarMul(Vertex a, f32 scalar){
-  return vertex_new(a.x * scalar, a.y * scalar, a.z * scalar);
-}
-
-Vertex vertex_scalarDiv(Vertex a, f32 scalar){
-  return vertex_new(a.x / scalar, a.y / scalar, a.z / scalar);
-}
-
-f32 vertex_dot(Vertex a, Vertex b){
-  return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-Vertex vertex_cross(Vertex a, Vertex b){
-  return vertex_new(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
-}
-
-f32 vertex_magnitude(Vertex a){
-  return hypotf(hypotf(a.x, a.y), a.z);
-}
-
 Camera camera(Vertex v, f32 farPlane, f32 nearPlane, f32 fieldView){
   Camera cam = {
     .pos = v,
@@ -113,11 +23,15 @@ Vertex camera_viewVertex(const Camera *cam){
 void camera_rotate(Camera *cam, f32 dYaw, f32 dPitch){
   cam->yaw = SDL_fmodf(cam->yaw + dYaw, 2.f * SDL_PI_F);
   cam->pitch = SDL_min(SDL_max(cam->pitch + dPitch, SDL_PI_F / -2.01f), SDL_PI_F / 2.01f);
+  cam->rot = quat_new(cam->yaw, vertex_new(0, -1, 0));
+  cam->rot = quat_compose(quat_new(cam->pitch, vertex_new(1, 0, 0)), cam->rot);
 }
 
 void camera_rotateUnbound(Camera *cam, f32 dYaw, f32 dPitch){
   cam->yaw = SDL_fmodf(cam->yaw + dYaw, 2.f * SDL_PI_F);
   cam->pitch = SDL_fmodf(cam->pitch + dPitch, 2.f * SDL_PI_F);
+  cam->rot = quat_new(cam->yaw, vertex_new(0, -1, 0));
+  cam->rot = quat_compose(quat_new(cam->pitch, vertex_new(1, 0, 0)), cam->rot);
 }
 
 void camera_moveAbs(Camera *cam, Vertex dPos){
@@ -136,20 +50,15 @@ void camera_moveRel(Camera *cam, Vertex dPos){
     cam->pos.z += dPos.x * -ys + dPos.y * -yc * ps + dPos.z * pc * yc;
 }
 
-Vertex vertex_onCamera(const Vertex *restrict v, const Camera *restrict cam, const Vertex offset, const Vertex rot, f32 scale){
+Vertex vertex_onCamera(const Vertex v, const Camera *restrict cam, const Vertex offset, const Quaternion rot, f32 scale){
+
   Vertex dv = vertex_rotate(v, rot);
   
   dv.x = dv.x * scale - cam->pos.x + offset.x,
   dv.y = dv.y * scale - cam->pos.y + offset.y,
   dv.z = dv.z * scale - cam->pos.z + offset.z;
-  
-  float s, c;
 
-  sincosf(cam->yaw, &s, &c);
-  dv = vertex_rotY(&dv, s, c);
-
-  sincosf(cam->pitch, &s, &c);
-  return vertex_rotX(&dv, s, c);
+  return vertex_rotate(dv, cam->rot);
 }
 
 Color color(f32 r, f32 g, f32 b, f32 a){
@@ -182,21 +91,14 @@ Object object_new(Model *model, Color *palette, Vertex pos, f32 scale){
     .model = model,
     .palette = palette,
     .pos = pos,
-    .scale = scale
+    .scale = scale,
+    .rot = {.r = 1}
   };
   return obj;
 }
 
-void object_rotateX(Object *obj, f32 ang){
-  obj->rot.x = SDL_fmodf(obj->rot.x + ang, 2.f * SDL_PI_F);
-}
-
-void object_rotateY(Object *obj, f32 ang){
-  obj->rot.y = SDL_fmodf(obj->rot.y + ang, 2.f * SDL_PI_F);
-}
-
-void object_rotateZ(Object *obj, f32 ang){
-  obj->rot.z = SDL_fmodf(obj->rot.z + ang, 2.f * SDL_PI_F);
+void object_rotate(Object *obj, Quaternion quat){
+  obj->rot = quat_compose(obj->rot, quat);
 }
 
 void object_move(Object *obj, Vertex dv){
@@ -215,9 +117,9 @@ void object_render(Object *obj, SDL_Renderer *rend, Camera *cam, f32 cx, f32 cy)
     Polygon polygon_new = obj->model->polygon[i];
 
     Vertex proj[4] = {
-      vertex_onCamera(vert + polygon_new.idx[0], cam, obj->pos, obj->rot, obj->scale),
-      vertex_onCamera(vert + polygon_new.idx[1], cam, obj->pos, obj->rot, obj->scale),
-      vertex_onCamera(vert + polygon_new.idx[2], cam, obj->pos, obj->rot, obj->scale)
+      vertex_onCamera(polygon_new.idx[0][vert], cam, obj->pos, obj->rot, obj->scale),
+      vertex_onCamera(polygon_new.idx[1][vert], cam, obj->pos, obj->rot, obj->scale),
+      vertex_onCamera(polygon_new.idx[2][vert], cam, obj->pos, obj->rot, obj->scale)
     };
     
     proj[0].x *= cam->fieldView, proj[0].y *= cam->fieldView;

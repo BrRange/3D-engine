@@ -5,7 +5,9 @@
 #include "Models/crystalModel.c"
 #include "Models/cubeModel.c"
 #include "Models/icosphereModel.c"
-#include "collider.c"
+#include "dataTypes/collider.c"
+#include "dataTypes/vertex.c"
+#include "dataTypes/quaternion.c"
 #include "eventHandler.h"
 #include "stdfcolor.h"
 
@@ -21,16 +23,19 @@ typedef struct CommonData{
   Collider *sphere, *pill;
 } CommonData;
 
-void tick(SDL_Renderer *rend, CommonData *data){
+void tick(CommonData *data){
   f32 dt = *data->deltaT / 1000.f;
 
   f32 speed = KeyboardHandler_hasKey(data->state->keyboardH, SDLK_LSHIFT) ? dt * 600.f : dt * 60.f;
 
   Object *player = data->objs + 6;
 
-  object_rotateZ(data->objs, dt * 2 * M_PI / 60);
-  object_rotateZ(data->objs + 1, dt * 2 * M_PI / 60. / 60.);
-  object_rotateZ(data->objs + 2, dt * 2 * M_PI / 60. / 60. / 12.);
+  Quaternion time = quat_new(dt * M_PI / 30.f, vertex_new(0, 0, 1));
+  object_rotate(data->objs, time);
+  time = quat_new(dt * M_PI / 30.f / 60.f, vertex_new(0, 0, 1));
+  object_rotate(data->objs + 1, time);
+  time = quat_new(dt * M_PI / 30.f / 60.f / 12.f, vertex_new(0, 0, 1));
+  object_rotate(data->objs + 2, time);
 
   SDL_FPoint mouseM = MouseHandler_getMovement(data->state->mouseH);
 
@@ -43,8 +48,8 @@ void tick(SDL_Renderer *rend, CommonData *data){
   rotated = vertex_scalarDiv(rotated, vertex_magnitude(rotated));
   if(KeyboardHandler_hasKey(data->state->keyboardH, SDLK_A)) object_move(player, vertex_scalarMul(rotated, speed));
   if(KeyboardHandler_hasKey(data->state->keyboardH, SDLK_D)) object_move(player, vertex_scalarMul(rotated, -speed));
-  //if(KeyboardHandler_hasKey(data->state->keyboardH, SDLK_SPACE)) camera_moveRel(data->cam, vertex_new(0, -speed, 0));
-  //if(KeyboardHandler_hasKey(data->state->keyboardH, SDLK_LCTRL)) camera_moveRel(data->cam, vertex_new(0, speed, 0));
+  if(KeyboardHandler_hasKey(data->state->keyboardH, SDLK_SPACE)) object_move(player, vertex_new(0, -speed, 0));
+  if(KeyboardHandler_hasKey(data->state->keyboardH, SDLK_LCTRL)) object_move(player, vertex_new(0, speed, 0));
 
   cameraView = vertex_scalarMul(cameraView, 100);
   cameraView = vertex_sub(player->pos, cameraView);
@@ -66,7 +71,7 @@ void render(SDL_Renderer *rend, CommonData *data){
   SDL_SetRenderDrawColor(rend, 55, 198, 255, 255);
   SDL_RenderClear(rend);
 
-  for(int i = 0; i < data->objCount; ++i)
+  for(usz i = 0; i < data->objCount; ++i)
   object_render(data->objs + data->renderList[i], rend, data->cam, cx, cy);
 }
 
@@ -79,12 +84,12 @@ int main(){
   SDL_SetWindowRelativeMouseMode(win, true);
   SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 
-  Uint64 start, end = 0, dtime;
+  SDL_Time start, end = 0, dtime;
   start = SDL_GetTicks();
 
   KeyboardHandler kbHandler = {0};
   MouseHandler moHandler = {0};
-  MenuState menu = MenuState_new(NULL, NULL, &kbHandler, &moHandler, 0);
+  MenuState menu = MenuState_new(NULL, NULL, &kbHandler, &moHandler);
   Camera cam = camera(vertex_new(0, 0, 0), 200, 0.1f, 500);
 
   Color colors[] = {
@@ -219,12 +224,15 @@ int main(){
 
   SDL_GetCurrentTime(&dtime);
   float clockAngle = dtime / 1e9f;
-  object_rotateZ(objs + 0, SDL_PI_F / 30 * clockAngle);
+  Quaternion time = quat_new(clockAngle * M_PI / 30.f, vertex_new(0, 0, 1));
+  object_rotate(objs + 0, time);
   clockAngle /= 60.f;
-  object_rotateZ(objs + 1, SDL_PI_F / 30 * clockAngle);
+  time = quat_new(clockAngle * M_PI / 30.f, vertex_new(0, 0, 1));
+  object_rotate(objs + 1, time);
   clockAngle /= 60.f;
   clockAngle += TIMEZONE;
-  object_rotateZ(objs + 2, SDL_PI_F / 6 * clockAngle);
+  time = quat_new(clockAngle * M_PI / 6.f, vertex_new(0, 0, 1));
+  object_rotate(objs + 2, time);
 
   Collider_Sphere playerColl = collider_newSphere(objs + 6, vertex_new(0, 0, 0), objs[6].scale);
   Collider_Pill secondColl = collider_newPill(objs + 3, vertex_new(0, -100, 0), vertex_new(0, 100, 0), 5);
@@ -247,7 +255,7 @@ int main(){
       end = start;
       handleEvents(&eve, &menu);
 
-      tick(rend, &data);
+      tick(&data);
       render(rend, &data);
 
       SDL_RenderPresent(rend);

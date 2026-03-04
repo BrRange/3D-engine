@@ -10,9 +10,9 @@ void KeyboardHandler_pressKey(KeyboardHandler *kbH, SDL_Keycode key) {
 
 
 void KeyboardHandler_releaseKey(KeyboardHandler *kbH, SDL_Keycode key) {
-  for (Uint32 i = 0; i < kbH->used; ++i) {
+  for (Sint32 i = 0; i < kbH->used; ++i) {
     if (kbH->keys[i] == key) {
-      for (Uint32 j = i; j < kbH->used - 1; ++j)
+      for (Sint32 j = i; j < kbH->used - 1; ++j)
         kbH->keys[j] = kbH->keys[j + 1];
       kbH->used--;
       kbH->keys[kbH->used] = 0;
@@ -87,7 +87,7 @@ void MouseHandler_clear(MouseHandler *mouseH){
   *mouseH = (MouseHandler){.pos = mouseH->pos};
 }
 
-MenuState MenuState_new(MenuFunc fnTick, MenuFunc fnRender, KeyboardHandler *keyboardH, MouseHandler *mouseH, Uint32 auxBytes){
+MenuState MenuState_new(MenuFunc fnTick, MenuFunc fnRender, KeyboardHandler *keyboardH, MouseHandler *mouseH){
   MenuState menu = {
     .tick = fnTick,
     .render = fnRender,
