@@ -1,22 +1,22 @@
 #include "icosphereModel.h"
 
-Model icosphere_gen(Vertex vert[12], Polygon poly[20], unsigned subDiv){
+Model icosphere_gen(Vec3 vert[12], Polygon poly[20], unsigned subDiv){
     (void) subDiv;
     unsigned curVert = 12, curPol = 20;
     const f32 w = 0.025f * sqrtf(5.f + sqrtf(5.f)) * (5.f * sqrtf(2.f) - sqrtf(10.f));
     const f32 h = w * (1.f + sqrtf(5)) * 0.5f;
-    vert[0] = vertex_new(-w, -h, 0),
-    vert[1] = vertex_new(-w, h, 0),
-    vert[2] = vertex_new(w, h, 0),
-    vert[3] = vertex_new(w, -h, 0);
+    vert[0] = vec3_new(-w, -h, 0),
+    vert[1] = vec3_new(-w, h, 0),
+    vert[2] = vec3_new(w, h, 0),
+    vert[3] = vec3_new(w, -h, 0);
     Quaternion
-    rotX = quat_new(SDL_PI_F / 2.f, vertex_new(1, 0, 0)),
-    rotZ = quat_new(SDL_PI_F / 2.f, vertex_new(0, 0, 1));
+    rotX = quat_new(SDL_PI_F / 2.f, vec3_new(1, 0, 0)),
+    rotZ = quat_new(SDL_PI_F / 2.f, vec3_new(0, 0, 1));
     for(int i = 0; i < 4; ++i){
-        vert[i + 4] = vertex_rotate(vert[i], rotX);
-        vert[i + 4] = vertex_rotate(vert[i + 4], rotZ);
-        vert[i + 8] = vertex_rotate(vert[i], rotZ);
-        vert[i + 8] = vertex_rotate(vert[i + 8], rotX);
+        vert[i + 4] = vec3_rotate(vert[i], rotX);
+        vert[i + 4] = vec3_rotate(vert[i + 4], rotZ);
+        vert[i + 8] = vec3_rotate(vert[i], rotZ);
+        vert[i + 8] = vec3_rotate(vert[i + 8], rotX);
     }
     u16 t1 = 0, t2 = 4, t3 = 8;
     poly[0]  = polygon_new(t1+0, t1+3, t2+0, 0);

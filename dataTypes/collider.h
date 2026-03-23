@@ -13,7 +13,7 @@ typedef enum ColliderType{
 typedef struct Collider{
   Object *anchor;
   ColliderType type;
-  Vertex offset;
+  Vec3 offset;
 } Collider;
 
 typedef struct Collider_Sphere{
@@ -21,23 +21,23 @@ typedef struct Collider_Sphere{
   float radius;
 } Collider_Sphere;
 
-Collider_Sphere collider_newSphere(Object *anchor, Vertex offset, float radius);
+Collider_Sphere collider_newSphere(Object *anchor, Vec3 offset, float radius);
 
 typedef struct Collider_Pill{
   Collider base;
-  Vertex extension;
+  Vec3 extension;
   float radius;
 } Collider_Pill;
 
-Collider_Pill collider_newPill(Object *anchor, Vertex offset, Vertex extension, float radius);
+Collider_Pill collider_newPill(Object *anchor, Vec3 offset, Vec3 extension, float radius);
 
 typedef struct Collider_Beam{
   Collider base;
-  Vertex dir;
+  Vec3 dir;
   float maxDist;
 } Collider_Beam;
 
-Collider_Beam collider_newBeam(Object *anchor, Vertex offset, Vertex dir, float maxDist);
+Collider_Beam collider_newBeam(Object *anchor, Vec3 offset, Vec3 dir, float maxDist);
 
 bool collider_collide(Collider *a, Collider *b);
 

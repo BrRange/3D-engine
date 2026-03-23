@@ -1,12 +1,12 @@
 #include "crystalModel.h"
 
-Model crystal_gen(Vertex vert[6], Polygon poly[8], f32 span){
-    vert[0] = vertex_new(0.f, -0.5f, 0.f);
-    vert[1] = vertex_new(0.f, 0.5f, 0.f);
-    vert[2] = vertex_new(-span, 0.f, -span);
-    vert[3] = vertex_new(span, 0.f, -span);
-    vert[4] = vertex_new(-span, 0.f, span);
-    vert[5] = vertex_new(span, 0.f, span);
+Model crystal_gen(Vec3 vert[6], Polygon poly[8], f32 span){
+    vert[0] = vec3_new(0.f, -0.5f, 0.f);
+    vert[1] = vec3_new(0.f, 0.5f, 0.f);
+    vert[2] = vec3_new(-span, 0.f, -span);
+    vert[3] = vec3_new(span, 0.f, -span);
+    vert[4] = vec3_new(-span, 0.f, span);
+    vert[5] = vec3_new(span, 0.f, span);
     poly[0] = polygon_new(0, 2, 3, 0);
     poly[1] = polygon_new(0, 3, 5, 0);
     poly[2] = polygon_new(0, 5, 4, 0);

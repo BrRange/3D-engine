@@ -1,8 +1,7 @@
 #include "fold.h"
-#include <SDL3_gfx/SDL3_gfxPrimitives.h>
 #include <math.h>
 
-Camera camera(Vertex v, f32 farPlane, f32 nearPlane, f32 fieldView){
+Camera camera(Vec3 v, f32 farPlane, f32 nearPlane, f32 fieldView){
   Camera cam = {
     .pos = v,
     .farPlane = farPlane,
@@ -12,33 +11,33 @@ Camera camera(Vertex v, f32 farPlane, f32 nearPlane, f32 fieldView){
   return cam;
 }
 
-Vertex camera_viewVertex(const Camera *cam){
+Vec3 camera_viewVec3(const Camera *cam){
   f32 ps, pc, ys, yc;
   sincosf(cam->yaw, &ys, &yc);
   sincosf(cam->pitch, &ps, &pc);
   
-  return vertex_new(pc * ys, ps, pc * yc);
+  return vec3_new(pc * ys, ps, pc * yc);
 }
 
 void camera_rotate(Camera *cam, f32 dYaw, f32 dPitch){
   cam->yaw = SDL_fmodf(cam->yaw + dYaw, 2.f * SDL_PI_F);
   cam->pitch = SDL_min(SDL_max(cam->pitch + dPitch, SDL_PI_F / -2.01f), SDL_PI_F / 2.01f);
-  cam->rot = quat_new(cam->yaw, vertex_new(0, -1, 0));
-  cam->rot = quat_compose(quat_new(cam->pitch, vertex_new(1, 0, 0)), cam->rot);
+  cam->rot = quat_new(cam->yaw, vec3_new(0, -1, 0));
+  cam->rot = quat_compose(quat_new(cam->pitch, vec3_new(1, 0, 0)), cam->rot);
 }
 
 void camera_rotateUnbound(Camera *cam, f32 dYaw, f32 dPitch){
   cam->yaw = SDL_fmodf(cam->yaw + dYaw, 2.f * SDL_PI_F);
   cam->pitch = SDL_fmodf(cam->pitch + dPitch, 2.f * SDL_PI_F);
-  cam->rot = quat_new(cam->yaw, vertex_new(0, -1, 0));
-  cam->rot = quat_compose(quat_new(cam->pitch, vertex_new(1, 0, 0)), cam->rot);
+  cam->rot = quat_new(cam->yaw, vec3_new(0, -1, 0));
+  cam->rot = quat_compose(quat_new(cam->pitch, vec3_new(1, 0, 0)), cam->rot);
 }
 
-void camera_moveAbs(Camera *cam, Vertex dPos){
-  cam->pos = vertex_add(cam->pos, dPos);
+void camera_moveAbs(Camera *cam, Vec3 dPos){
+  cam->pos = vec3_add(cam->pos, dPos);
 }
 
-void camera_moveRel(Camera *cam, Vertex dPos){
+void camera_moveRel(Camera *cam, Vec3 dPos){
   f32 ps, pc, ys, yc;
   sincosf(cam->pitch, &ps, &pc);
   sincosf(cam->yaw, &ys, &yc);
@@ -50,20 +49,22 @@ void camera_moveRel(Camera *cam, Vertex dPos){
     cam->pos.z += dPos.x * -ys + dPos.y * -yc * ps + dPos.z * pc * yc;
 }
 
-Vertex vertex_onCamera(const Vertex v, const Camera *restrict cam, const Vertex offset, const Quaternion rot, f32 scale){
-
-  Vertex dv = vertex_rotate(v, rot);
+Vec3 vec3_onCamera(const Vec3 v, const Camera *restrict cam, const Vec3 offset, const Quaternion rot, f32 scale){
+  Vec3 dv = vec3_rotate(v, rot);
   
   dv.x = dv.x * scale - cam->pos.x + offset.x,
   dv.y = dv.y * scale - cam->pos.y + offset.y,
   dv.z = dv.z * scale - cam->pos.z + offset.z;
 
-  return vertex_rotate(dv, cam->rot);
+  return vec3_rotate(dv, cam->rot);
 }
 
-Color color(f32 r, f32 g, f32 b, f32 a){
+Color color(u8 r, u8 g, u8 b, u8 a){
   Color c = {
-    .rgba = {r, g, b, a}
+    .r = r,
+    .g = g,
+    .b = b,
+    .a = a
   };
   return c;
 }
@@ -76,17 +77,17 @@ Polygon polygon_new(u16 idx0, u16 idx1, u16 idx2, u16 colorIndex){
   return p;
 }
 
-Model model(Vertex *vertex_new, size_t vertexCount, Polygon *polygon_new, size_t polyCount){
+Model model(Vec3 *vec3_new, size_t vec3Count, Polygon *polygon_new, size_t polyCount){
   Model mdl = {
-    .vertex = vertex_new,
-    .vertexCount = vertexCount,
+    .vec3 = vec3_new,
+    .vec3Count = vec3Count,
     .polygon = polygon_new,
     .polyCount = polyCount
   };
   return mdl;
 }
 
-Object object_new(Model *model, Color *palette, Vertex pos, f32 scale){
+Object object_new(Model *model, Color *palette, Vec3 pos, f32 scale){
   Object obj = {
     .model = model,
     .palette = palette,
@@ -101,25 +102,24 @@ void object_rotate(Object *obj, Quaternion quat){
   obj->rot = quat_compose(obj->rot, quat);
 }
 
-void object_move(Object *obj, Vertex dv){
+void object_move(Object *obj, Vec3 dv){
   obj->pos.x += dv.x;
   obj->pos.y += dv.y;
   obj->pos.z += dv.z;
 }
 
-void object_render(Object *obj, SDL_Renderer *rend, Camera *cam, f32 cx, f32 cy){
-  Vertex *vert = obj->model->vertex, clipped[3], unclipped[3];
-  SDL_Vertex gradVert[3] = {0};
+void object_render(Object *obj, Canvas *canv, Camera *cam){
+  Vec3 *vert = obj->model->vec3, clipped[3], unclipped[3];
   u8 clipCount, unclipCount;
 
   for(size_t i = 0; i < obj->model->polyCount; ++i){
     clipCount = unclipCount = 0;
     Polygon polygon_new = obj->model->polygon[i];
 
-    Vertex proj[4] = {
-      vertex_onCamera(polygon_new.idx[0][vert], cam, obj->pos, obj->rot, obj->scale),
-      vertex_onCamera(polygon_new.idx[1][vert], cam, obj->pos, obj->rot, obj->scale),
-      vertex_onCamera(polygon_new.idx[2][vert], cam, obj->pos, obj->rot, obj->scale)
+    Vec3 proj[4] = {
+      vec3_onCamera(polygon_new.idx[0][vert], cam, obj->pos, obj->rot, obj->scale),
+      vec3_onCamera(polygon_new.idx[1][vert], cam, obj->pos, obj->rot, obj->scale),
+      vec3_onCamera(polygon_new.idx[2][vert], cam, obj->pos, obj->rot, obj->scale)
     };
     
     proj[0].x *= cam->fieldView, proj[0].y *= cam->fieldView;
@@ -132,25 +132,25 @@ void object_render(Object *obj, SDL_Renderer *rend, Camera *cam, f32 cx, f32 cy)
     if(proj[j].z <= cam->nearPlane) clipped[clipCount++] = proj[j];
     else unclipped[unclipCount++] = proj[j];
 
-    bool extraVertex = false;
+    bool extraVec3 = false;
     switch(clipCount){
     case 0:
       for(u8 j = 0; j < 3; ++j)
         proj[j].x /= proj[j].z, proj[j].y /= proj[j].z;
     break;
     case 1:
-      extraVertex = true;
+      extraVec3 = true;
       proj[0] = unclipped[0];
       proj[1] = unclipped[1];
-      proj[2] = vertex_getClip(clipped[0], unclipped[0], cam->nearPlane);
-      proj[3] = vertex_getClip(clipped[0], unclipped[1], cam->nearPlane);
+      proj[2] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
+      proj[3] = vec3_getClip(clipped[0], unclipped[1], cam->nearPlane);
       for(u8 j = 0; j < 2; ++j)
         proj[j].x /= proj[j].z, proj[j].y /= proj[j].z;
     break;
     case 2:{
       proj[0] = unclipped[0];
-      proj[1] = vertex_getClip(clipped[0], unclipped[0], cam->nearPlane);
-      proj[2] = vertex_getClip(clipped[1], unclipped[0], cam->nearPlane);
+      proj[1] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
+      proj[2] = vec3_getClip(clipped[1], unclipped[0], cam->nearPlane);
       proj[0].x /= proj[0].z, proj[0].y /= proj[0].z;
     }
     break;
@@ -158,25 +158,66 @@ void object_render(Object *obj, SDL_Renderer *rend, Camera *cam, f32 cx, f32 cy)
       continue;
     }
 
-    for(u8 j = 0; j < 3; ++j){
-      gradVert[j].position = (SDL_FPoint){.x = proj[j].x + cx, .y = proj[j].y + cy};
-      gradVert[j].color = (SDL_FColor){.a = color.a, .r = color.r, .g = color.g, .b = color.b};
+    u32 bounds[4];
+    f32 cx = canv->w / 2.f, cy = canv->h / 2.f;
+
+    Vec2
+    a = {proj[0].x + cx, proj[0].y + cy},
+    b = {proj[1].x + cx, proj[1].y + cy},
+    c = {proj[2].x + cx, proj[2].y + cy};
+
+    if(vec2_edge(c, b, a) <= 0.f) continue;
+
+    vec2_bound(a, b, c, bounds);
+
+    bounds[0] = SDL_max(bounds[0], 0);
+    bounds[1] = SDL_min(bounds[1], canv->w - 1);
+    bounds[2] = SDL_max(bounds[2], 0);
+    bounds[3] = SDL_min(bounds[3], canv->h - 1);
+
+    for(i32 row = bounds[2]; row < bounds[3]; ++row)
+    for(i32 col = bounds[0]; col < bounds[1]; ++col){
+      usz idx = (usz)row * canv->w + col;
+      
+      Vec2 p = vec2_new(col, row);
+      f32
+      AB = vec2_edge(p, b, a),
+      BC = vec2_edge(p, c, b),
+      CA = vec2_edge(p, a, c);
+
+      f32 bary = 1.f / (AB + BC + CA);
+      
+      Vec3 weight = vec3_new(BC * bary, CA * bary, AB * bary), depth = vec3_new(proj[0].z, proj[1].z, proj[2].z);
+
+      f32 thisZ = vec3_dot(weight, depth);
+
+      if(thisZ >= canv->zBuffer[idx]) continue;
+      if(AB < 0.f || BC < 0.f || CA < 0.f) continue;
+      canv->pixel[idx] = color;
+      canv->zBuffer[idx] = thisZ;
     }
-    if(extraVertex){
-      SDL_RenderGeometry(rend, NULL, gradVert, 3, NULL, 0);
-      gradVert[0].position = (SDL_FPoint){.x = proj[3].x + cx, .y = proj[3].y + cy};
-      gradVert[0].color = (SDL_FColor){.a = color.a, .r = color.r, .g = color.g, .b = color.b};
-    }
-    SDL_RenderGeometry(rend, NULL, gradVert, 3, NULL, 0);
   }
 }
 
-int object_distCompare(void **ref, u32 *idx1, u32 *idx2){
-  Camera *cam = ref[0];
-  Object *objs = ref[1];
-  Vertex diff = vertex_sub(objs[*idx1].pos, cam->pos);
-  f32 distSq1 = vertex_dot(diff, diff);
-  diff = vertex_sub(objs[*idx2].pos, cam->pos);
-  f32 distSq2 = vertex_dot(diff, diff);
-  return distSq1 > distSq2 ? -1 : 1;
+Canvas canvas_new(SDL_Renderer *rend, u32 w, u32 h){
+  Canvas canv = {
+    .pixel = SDL_malloc(sizeof *canv.pixel * w * h),
+    .zBuffer = SDL_malloc(sizeof *canv.zBuffer * w * h),
+    .tex = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, w, h),
+    .w = w,
+    .h = h
+  };
+  return canv;
+}
+
+void canvas_clear(Canvas *canv){
+  usz len = (usz)canv->w * canv->h;
+  SDL_memset4(canv->pixel, 0, len);
+  SDL_memset4(canv->zBuffer, 0x7f800000, len);
+}
+
+void canvas_destroy(Canvas *canv){
+  SDL_free(canv->pixel);
+  SDL_free(canv->zBuffer);
+  SDL_DestroyTexture(canv->tex);
 }

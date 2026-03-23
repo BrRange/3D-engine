@@ -1,43 +1,45 @@
-#include "sdlFrame.h"
+#include "gamectrl.h"
 
-void handleEvents(SDL_Event *eve, MenuState *menu){
-  while(SDL_PollEvent(eve))
-  switch(eve->type){
+bool handleEvents(KeyboardHandler *keyboardH, MouseHandler *mouseH){
+  SDL_Event eve;
+  while(SDL_PollEvent(&eve))
+  switch(eve.type){
   case SDL_EVENT_QUIT:
-  return;
+  return false;
 
   case SDL_EVENT_WINDOW_DESTROYED:
     SDL_Quit();
   break;
 
   case SDL_EVENT_MOUSE_MOTION:
-    MouseHandler_setPos(menu->mouseH, eve->motion.x, eve->motion.y);
-    MouseHandler_move(menu->mouseH, eve->motion.xrel, eve->motion.yrel);
+    mouseH_setPos(mouseH, eve.motion.x, eve.motion.y);
+    mouseH_move(mouseH, eve.motion.xrel, eve.motion.yrel);
   break;
 
   case SDL_EVENT_MOUSE_BUTTON_DOWN:
-    MouseHandler_pressButton(menu->mouseH, eve->button.button);
+    mouseH_press(mouseH, eve.button.button);
   break;
 
   case SDL_EVENT_MOUSE_BUTTON_UP:
-    MouseHandler_releaseButton(menu->mouseH, eve->button.button);
+    mouseH_release(mouseH, eve.button.button);
   break;
 
   case SDL_EVENT_MOUSE_WHEEL:
-    MouseHandler_scroll(menu->mouseH, eve->wheel.y);
+    mouseH_scroll(mouseH, eve.wheel.y);
   break;
 
   case SDL_EVENT_KEY_DOWN:
-    KeyboardHandler_pressKey(menu->keyboardH, eve->key.key);
+    keyboardH_press(keyboardH, eve.key.key);
   break;
 
   case SDL_EVENT_KEY_UP:
-    KeyboardHandler_releaseKey(menu->keyboardH, eve->key.key);
+    keyboardH_release(keyboardH, eve.key.key);
   break;
 
   case SDL_EVENT_WINDOW_FOCUS_LOST:
-    KeyboardHandler_clear(menu->keyboardH);
-    MouseHandler_clear(menu->mouseH);
+    keyboardH_clear(keyboardH);
+    mouseH_clear(mouseH);
   break;
   }
+  return true;
 }

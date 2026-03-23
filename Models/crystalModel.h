@@ -7,6 +7,6 @@
  * \param vert [6]
  * \param poly [8]
  */
-Model crystal_gen(Vertex vert[6], Polygon poly[8], f32 span);
+Model crystal_gen(Vec3 vert[6], Polygon poly[8], f32 span);
 
 #endif

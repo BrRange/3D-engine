@@ -1,7 +1,7 @@
 #include <math.h>
 #include "collider.h"
 
-Collider_Sphere collider_newSphere(Object *anchor, Vertex offset, float radius){
+Collider_Sphere collider_newSphere(Object *anchor, Vec3 offset, float radius){
   Collider_Sphere sphere = {
     .base = {
       .anchor = anchor,
@@ -13,7 +13,7 @@ Collider_Sphere collider_newSphere(Object *anchor, Vertex offset, float radius){
   return sphere;
 }
 
-Collider_Pill collider_newPill(Object *anchor, Vertex offset, Vertex extension, float radius){
+Collider_Pill collider_newPill(Object *anchor, Vec3 offset, Vec3 extension, float radius){
   Collider_Pill pill = {
     .base = {
       .anchor = anchor,
@@ -26,7 +26,7 @@ Collider_Pill collider_newPill(Object *anchor, Vertex offset, Vertex extension, 
   return pill;
 }
 
-Collider_Beam collider_newBeam(Object *anchor, Vertex offset, Vertex dir, float maxDist){
+Collider_Beam collider_newBeam(Object *anchor, Vec3 offset, Vec3 dir, float maxDist){
   Collider_Beam beam = {
     .base = {
       .anchor = anchor,
@@ -77,58 +77,58 @@ bool collider_collide(Collider *a, Collider *b){
 }
 
 bool collider_sphere_sphere(Collider_Sphere *a, Collider_Sphere *b){
-  Vertex aPos, bPos;
+  Vec3 aPos, bPos;
 
-  aPos = vertex_add(a->base.anchor->pos, a->base.offset);
-  aPos = vertex_rotate(aPos, a->base.anchor->rot);
+  aPos = vec3_add(a->base.anchor->pos, a->base.offset);
+  aPos = vec3_rotate(aPos, a->base.anchor->rot);
 
-  bPos = vertex_add(b->base.anchor->pos, b->base.offset);
-  bPos = vertex_rotate(bPos, b->base.anchor->rot);
+  bPos = vec3_add(b->base.anchor->pos, b->base.offset);
+  bPos = vec3_rotate(bPos, b->base.anchor->rot);
 
-  Vertex diff = vertex_sub(aPos, bPos);
+  Vec3 diff = vec3_sub(aPos, bPos);
   float radius = a->radius + b->radius;
-  return vertex_dot(diff, diff) <= radius * radius;
+  return vec3_dot(diff, diff) <= radius * radius;
 }
 
 bool collider_sphere_pill(Collider_Sphere *sphere, Collider_Pill *pill){
-  Vertex spherePos, pillPos[2];
+  Vec3 spherePos, pillPos[2];
   
-  spherePos = vertex_add(sphere->base.anchor->pos, sphere->base.offset);
-  spherePos = vertex_rotate(spherePos, sphere->base.anchor->rot);
+  spherePos = vec3_add(sphere->base.anchor->pos, sphere->base.offset);
+  spherePos = vec3_rotate(spherePos, sphere->base.anchor->rot);
 
-  pillPos[0] = vertex_add(pill->base.anchor->pos, pill->base.offset);
-  pillPos[1] = vertex_add(pill->base.anchor->pos, pill->extension);
-  pillPos[0] = vertex_rotate(pillPos[0], pill->base.anchor->rot);
-  pillPos[1] = vertex_rotate(pillPos[1], pill->base.anchor->rot);
+  pillPos[0] = vec3_add(pill->base.anchor->pos, pill->base.offset);
+  pillPos[1] = vec3_add(pill->base.anchor->pos, pill->extension);
+  pillPos[0] = vec3_rotate(pillPos[0], pill->base.anchor->rot);
+  pillPos[1] = vec3_rotate(pillPos[1], pill->base.anchor->rot);
   
-  Vertex line = vertex_sub(pillPos[0], pillPos[1]);
-  Vertex proj = vertex_sub(pillPos[0], spherePos);
+  Vec3 line = vec3_sub(pillPos[0], pillPos[1]);
+  Vec3 proj = vec3_sub(pillPos[0], spherePos);
 
-  float radius = vertex_dot(line, proj) / vertex_dot(line, line);
+  float radius = vec3_dot(line, proj) / vec3_dot(line, line);
   radius = SDL_clamp(radius, 0.f, 1.f);
-  line = vertex_add(vertex_scalarMul(pillPos[0], 1.f - radius), vertex_scalarMul(pillPos[1], radius));
+  line = vec3_add(vec3_mul(pillPos[0], 1.f - radius), vec3_mul(pillPos[1], radius));
 
-  proj = vertex_sub(line, spherePos);
+  proj = vec3_sub(line, spherePos);
   radius = sphere->radius + pill->radius;
 
-  return vertex_dot(proj, proj) <= radius * radius;
+  return vec3_dot(proj, proj) <= radius * radius;
 }
 
 bool collider_sphere_beam(Collider_Sphere *sphere, Collider_Beam *beam){
-  Vertex spherePos, beamPos;
+  Vec3 spherePos, beamPos;
 
-  spherePos = vertex_add(sphere->base.anchor->pos, sphere->base.offset);
-  spherePos = vertex_rotate(spherePos, sphere->base.anchor->rot);
+  spherePos = vec3_add(sphere->base.anchor->pos, sphere->base.offset);
+  spherePos = vec3_rotate(spherePos, sphere->base.anchor->rot);
 
-  beamPos = vertex_add(sphere->base.anchor->pos, sphere->base.offset);
-  beamPos = vertex_rotate(spherePos, sphere->base.anchor->rot);
-  beamPos = vertex_sub(beamPos, spherePos);
+  beamPos = vec3_add(sphere->base.anchor->pos, sphere->base.offset);
+  beamPos = vec3_rotate(spherePos, sphere->base.anchor->rot);
+  beamPos = vec3_sub(beamPos, spherePos);
 
-  float angularDist, linearDist = vertex_dot(beamPos, beamPos), radius = sphere->radius;
+  float angularDist, linearDist = vec3_dot(beamPos, beamPos), radius = sphere->radius;
   radius *= radius;
 
   if(linearDist <= radius) return true;
-  angularDist = vertex_dot(beamPos, beam->dir);
+  angularDist = vec3_dot(beamPos, beam->dir);
 
   float parallelism = angularDist / linearDist;
   if(parallelism >= 0) return false;

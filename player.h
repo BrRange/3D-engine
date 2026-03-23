@@ -5,10 +5,10 @@
 
 typedef struct Player{
   Object *body;
-  Vertex speed;
+  Vec3 speed;
 } Player;
 
-Player player_new(Object *body, Vertex pos);
+Player player_new(Object *body, Vec3 pos);
 
 void player_tick(Player *pl, f32 dt);
 

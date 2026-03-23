@@ -1,7 +1,7 @@
 #include "quaternion.h"
 #include <math.h>
 
-Quaternion quat_new(float angle, Vertex normAxis){
+Quaternion quat_new(float angle, Vec3 normAxis){
   Quaternion quat;
   angle /= 2.f;
   sincosf(angle, &angle, &quat.r);
@@ -28,17 +28,17 @@ Quaternion quat_conjugate(Quaternion quat){
   return quat;
 }
 
-Quaternion vertex_quat(Vertex point){
+Quaternion vec3_quat(Vec3 point){
   return (Quaternion){0.f, point.x, point.y, point.z};
 }
 
-Vertex quat_vertex(Quaternion quat){
-  return (Vertex){quat.x, quat.y, quat.z};
+Vec3 quat_vec3(Quaternion quat){
+  return (Vec3){quat.x, quat.y, quat.z};
 }
 
-Vertex vertex_rotate(Vertex point, Quaternion quat){
+Vec3 vec3_rotate(Vec3 point, Quaternion quat){
   Quaternion conjugate = quat_conjugate(quat);
-  quat = quat_compose(quat, vertex_quat(point));
+  quat = quat_compose(quat, vec3_quat(point));
   quat = quat_compose(quat, conjugate);
-  return quat_vertex(quat);
+  return quat_vec3(quat);
 }
