@@ -71,8 +71,7 @@ void render(SDL_Renderer *rend, CommonData *data){
   for(usz i = 0; i < data->objCount; ++i)
     object_render(data->objs + i, canv, data->cam);
 
-  SDL_UpdateTexture(canv->tex, NULL, canv->pixel, sizeof *canv->pixel * canv->w);
-  SDL_RenderTexture(rend, canv->tex, NULL, NULL);
+  canvas_render(canv, rend);
 
   SDL_RenderPresent(rend);
 }
@@ -81,19 +80,18 @@ int main(){
   SDL_Window *win;
   SDL_Renderer *rend;
 
-  SDL_CreateWindowAndRenderer("3D graphics", 100, 100, SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED, &win, &rend);
+  SDL_CreateWindowAndRenderer("3D graphics", 1280, 720, 0, &win, &rend);
 
   SDL_SetWindowRelativeMouseMode(win, true);
-  SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 
   SDL_Time start, end = 0, dtime;
   start = SDL_GetTicks();
 
   KeyboardHandler kbHandler = {0};
   MouseHandler moHandler = {0};
-  Canvas canv = canvas_new(rend, 16 * 100, 9 * 100);
+  Canvas canv = canvas_new(rend, 1280, 720);
 
-  Camera cam = camera(vec3_new(0, 0, 0), 200, 50.f, 1.f / SDL_tanf(SDL_PI_F / 3));
+  Camera cam = camera(vec3_new(0, 0, 0), 200, 1.f, 1.f / SDL_tanf(2.f * SDL_PI_F / 3.f / 2.f));
 
   Color colors[] = {
     Color_Red,    // 0
@@ -262,10 +260,6 @@ int main(){
 
       tick(rend, &data);
       render(rend, &data);
-
-      SDL_RenderPresent(rend);
-
-      SDL_Log("%g FPS", 1000.f / dtime);
     }
     start = SDL_GetTicks();
     SDL_Delay(1);
@@ -273,6 +267,7 @@ int main(){
 
   SDL_DestroyWindow(win);
   SDL_DestroyRenderer(rend);
-  SDL_assert((SDL_Log("Normal execution"), 0));
+  canvas_destroy(&canv);
+  SDL_assert((SDL_Log("Program in debug mode"), 0));
   SDL_Quit();
 }

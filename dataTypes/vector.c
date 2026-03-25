@@ -115,8 +115,6 @@ void vec2_bound(Vec2 a, Vec2 b, Vec2 c, u32 bounds[4]){
   bounds[1] = SDL_max(a.x, SDL_max(b.x, c.x));
   bounds[2] = SDL_min(a.y, SDL_min(b.y, c.y));
   bounds[3] = SDL_max(a.y, SDL_max(b.y, c.y));
-  bounds[0] -= 1.f;
-  bounds[1] += 1.f;
-  bounds[2] -= 1.f;
-  bounds[3] += 1.f;
+  bounds[1] += 1;
+  bounds[3] += 1;
 }

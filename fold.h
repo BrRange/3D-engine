@@ -27,7 +27,7 @@ struct Camera{
 };
 typedef struct Camera Camera;
 
-Camera camera(Vec3 v, f32 farPlane, f32 nearPlane, f32 fieldView);
+Camera camera(const Vec3 v, f32 farPlane, f32 nearPlane, f32 fieldView);
 
 Vec3 camera_viewVec3(const Camera *cam);
 
@@ -35,9 +35,9 @@ void camera_rotate(Camera *cam, f32 dYaw, f32 dPitch);
 
 void camera_rotateUnbound(Camera *cam, f32 dYaw, f32 dPitch);
 
-void camera_moveAbs(Camera *cam, Vec3 dPos);
+void camera_moveAbs(Camera *cam, const Vec3 dPos);
 
-void camera_moveRel(Camera *cam, Vec3 dPos);
+void camera_moveRel(Camera *cam, const Vec3 dPos);
 
 Vec3 vec3_onCamera(const Vec3 v, const Camera *restrict cam, const Vec3 offset, const Quaternion rot, f32 scale);
 
@@ -70,15 +70,17 @@ struct Object{
 };
 typedef struct Object Object;
 
-Object object_new(Model *model, Color *palette, Vec3 rCenter, f32 scale);
+Object object_new(Model *model, Color *palette, const Vec3 rCenter, f32 scale);
 
 void object_rotate(Object *obj, Quaternion quat);
 
-void object_move(Object *obj, Vec3 dv);
+void object_move(Object *obj, const Vec3 dv);
 
 void object_render(Object *obj, Canvas *canv, Camera *cam);
 
 Canvas canvas_new(SDL_Renderer *rend, u32 w, u32 h);
+
+void canvas_render(Canvas *canv, SDL_Renderer *rend);
 
 void canvas_destroy(Canvas *canv);
 

@@ -4,10 +4,10 @@
 #include "vector.h"
 
 typedef struct Quaternion{
-  float r, x, y, z;
+  f32 r, x, y, z;
 } Quaternion;
 
-Quaternion quat_new(float angle, Vec3 normAxis);
+Quaternion quat_new(f32 angle, Vec3 normAxis);
 
 Quaternion quat_compose(Quaternion quat, Quaternion val);
 

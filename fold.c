@@ -1,7 +1,7 @@
 #include "fold.h"
 #include <math.h>
 
-Camera camera(Vec3 v, f32 farPlane, f32 nearPlane, f32 fieldView){
+Camera camera(const Vec3 v, f32 farPlane, f32 nearPlane, f32 fieldView){
   Camera cam = {
     .pos = v,
     .farPlane = farPlane,
@@ -33,11 +33,11 @@ void camera_rotateUnbound(Camera *cam, f32 dYaw, f32 dPitch){
   cam->rot = quat_compose(quat_new(cam->pitch, vec3_new(1, 0, 0)), cam->rot);
 }
 
-void camera_moveAbs(Camera *cam, Vec3 dPos){
+void camera_moveAbs(Camera *cam, const Vec3 dPos){
   cam->pos = vec3_add(cam->pos, dPos);
 }
 
-void camera_moveRel(Camera *cam, Vec3 dPos){
+void camera_moveRel(Camera *cam, const Vec3 dPos){
   f32 ps, pc, ys, yc;
   sincosf(cam->pitch, &ps, &pc);
   sincosf(cam->yaw, &ys, &yc);
@@ -87,7 +87,7 @@ Model model(Vec3 *vec3_new, size_t vec3Count, Polygon *polygon_new, size_t polyC
   return mdl;
 }
 
-Object object_new(Model *model, Color *palette, Vec3 pos, f32 scale){
+Object object_new(Model *model, Color *palette, const Vec3 pos, f32 scale){
   Object obj = {
     .model = model,
     .palette = palette,
@@ -102,7 +102,7 @@ void object_rotate(Object *obj, Quaternion quat){
   obj->rot = quat_compose(obj->rot, quat);
 }
 
-void object_move(Object *obj, Vec3 dv){
+void object_move(Object *obj, const Vec3 dv){
   obj->pos.x += dv.x;
   obj->pos.y += dv.y;
   obj->pos.z += dv.z;
@@ -121,10 +121,12 @@ void object_render(Object *obj, Canvas *canv, Camera *cam){
       vec3_onCamera(polygon_new.idx[1][vert], cam, obj->pos, obj->rot, obj->scale),
       vec3_onCamera(polygon_new.idx[2][vert], cam, obj->pos, obj->rot, obj->scale)
     };
-    
-    proj[0].x *= cam->fieldView, proj[0].y *= cam->fieldView;
-    proj[1].x *= cam->fieldView, proj[1].y *= cam->fieldView;
-    proj[2].x *= cam->fieldView, proj[2].y *= cam->fieldView;
+
+    f32 canvDiag = hypotf(canv->w, canv->h);
+
+    proj[0].x *= cam->fieldView * canvDiag, proj[0].y *= cam->fieldView * canvDiag;
+    proj[1].x *= cam->fieldView * canvDiag, proj[1].y *= cam->fieldView * canvDiag;
+    proj[2].x *= cam->fieldView * canvDiag, proj[2].y *= cam->fieldView * canvDiag;
     
     Color color = obj->palette[polygon_new.colorIndex];
 
@@ -201,9 +203,9 @@ void object_render(Object *obj, Canvas *canv, Camera *cam){
 
 Canvas canvas_new(SDL_Renderer *rend, u32 w, u32 h){
   Canvas canv = {
-    .pixel = SDL_malloc(sizeof *canv.pixel * w * h),
+    .pixel = NULL,
     .zBuffer = SDL_malloc(sizeof *canv.zBuffer * w * h),
-    .tex = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, w, h),
+    .tex = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, w, h),
     .w = w,
     .h = h
   };
@@ -211,13 +213,19 @@ Canvas canvas_new(SDL_Renderer *rend, u32 w, u32 h){
 }
 
 void canvas_clear(Canvas *canv){
-  usz len = (usz)canv->w * canv->h;
-  SDL_memset4(canv->pixel, 0, len);
+  usz len;
+  SDL_LockTexture(canv->tex, NULL, (void**)&canv->pixel, (int*)&len);
+  len = (usz)canv->w * canv->h;
   SDL_memset4(canv->zBuffer, 0x7f800000, len);
+  SDL_memset4(canv->pixel, 0, len);
+}
+
+void canvas_render(Canvas *canv, SDL_Renderer *rend){
+  SDL_UnlockTexture(canv->tex);
+  SDL_RenderTexture(rend, canv->tex, NULL, NULL);
 }
 
 void canvas_destroy(Canvas *canv){
-  SDL_free(canv->pixel);
   SDL_free(canv->zBuffer);
   SDL_DestroyTexture(canv->tex);
 }
