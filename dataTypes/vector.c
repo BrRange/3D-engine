@@ -93,7 +93,7 @@ f32 vec2_dot(Vec2 a, Vec2 b){
 }
 
 Vec2 vec2_perp(Vec2 v){
-  Vec2 p = {.x = v.y, .y = -v.x};
+  Vec2 p = {.x = -v.y, .y = v.x};
   return p;
 }
 
@@ -107,10 +107,10 @@ Vec2 vec2_normal(Vec2 v){
 }
 
 f32 vec2_edge(Vec2 a, Vec2 b, Vec2 c){
-  return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  return (b.x - a.x) * (a.y - c.y) + (b.y - a.y) * (c.x - a.x);
 }
 
-void vec2_bound(Vec2 a, Vec2 b, Vec2 c, u32 bounds[4]){
+void vec2_bound(Vec2 a, Vec2 b, Vec2 c, i32 bounds[4]){
   bounds[0] = SDL_min(a.x, SDL_min(b.x, c.x));
   bounds[1] = SDL_max(a.x, SDL_max(b.x, c.x));
   bounds[2] = SDL_min(a.y, SDL_min(b.y, c.y));

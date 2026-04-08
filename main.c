@@ -38,6 +38,10 @@ void tick(SDL_Renderer *rend, CommonData *data){
   time = quat_new(dt * M_PI / 30.f / 60.f / 12.f, vec3_new(0, 0, 1));
   object_rotate(data->objs + 2, time);
 
+  time = quat_new(dt, vec3_new(0, 1, 0));
+  object_rotate(data->objs + 7, time);
+  object_rotate(data->objs + 8, time);
+
   Vec2 mouseM = mouseH_getMovement(data->mouseH);
 
   camera_rotate(data->cam, mouseM.x * 0.01f, mouseM.y * 0.01f);
@@ -52,7 +56,7 @@ void tick(SDL_Renderer *rend, CommonData *data){
   if(keyboardH_has(data->keyboardH, SDLK_SPACE)) object_move(player, vec3_new(0, -speed, 0));
   if(keyboardH_has(data->keyboardH, SDLK_LCTRL)) object_move(player, vec3_new(0, speed, 0));
 
-  cameraView = vec3_mul(cameraView, 100);
+  cameraView = vec3_mul(cameraView, 80);
   cameraView = vec3_sub(player->pos, cameraView);
   cameraView = vec3_sub(cameraView, data->cam->pos);
   camera_moveAbs(data->cam, vec3_div(cameraView, 4));
@@ -132,6 +136,23 @@ int main(){
 
   Model zeCube_model = model(zeCube_vert, arrLen(zeCube_vert), zeCube_poly, arrLen(zeCube_poly));
 
+  Polygon zeInv_poly[] = {
+    polygon_new(2, 0, 1, 0),
+    polygon_new(3, 0, 2, 0),
+    polygon_new(1, 0, 4, 0),
+    polygon_new(5, 1, 4, 0),
+    polygon_new(4, 0, 3, 0),
+    polygon_new(4, 3, 7, 0),
+    polygon_new(2, 1, 5, 0),
+    polygon_new(6, 2, 5, 0),
+    polygon_new(3, 2, 6, 0),
+    polygon_new(7, 3, 6, 0),
+    polygon_new(5, 4, 6, 0),
+    polygon_new(6, 4, 7, 0)
+  };
+
+  Model zeInv_model = model(zeCube_vert, arrLen(zeCube_vert), zeInv_poly, arrLen(zeInv_poly));
+
   Vec3 vert[][4] = {
     {vec3_new(.01, -1, 0), vec3_new(-.01, -1, 0), vec3_new(-.01, 0, 0), vec3_new(.01, 0, 0)},
     {vec3_new(.02, -1, 0), vec3_new(-.02, -1, 0), vec3_new(-.02, 0, 0), vec3_new(.02, 0, 0)},
@@ -180,43 +201,52 @@ int main(){
     polygon_new(1, 2, 5, 0),
     polygon_new(2, 3, 4, 0),
     polygon_new(2, 4, 5, 0),
-    polygon_new(6, 7, 11, 0),
-    polygon_new(7, 8, 11, 0),
-    polygon_new(8, 9, 10, 0),
-    polygon_new(8, 10, 11, 0),
+    polygon_new(11, 7, 6, 0),
+    polygon_new(11, 8, 7, 0),
+    polygon_new(10, 9, 8, 0),
+    polygon_new(11, 10, 8, 0),
     polygon_new(0, 6, 1, 0),
-    polygon_new(7, 6, 1, 0),
+    polygon_new(1, 6, 7, 0),
     polygon_new(1, 7, 2, 0),
-    polygon_new(8, 7, 2, 0),
+    polygon_new(2, 7, 8, 0),
     polygon_new(2, 8, 3, 0),
-    polygon_new(9, 8, 3, 0),
+    polygon_new(3, 8, 9, 0),
     polygon_new(3, 9, 4, 0),
-    polygon_new(10, 9, 4, 0),
+    polygon_new(4, 9, 10, 0),
     polygon_new(4, 10, 5, 0),
-    polygon_new(11, 10, 5, 0),
+    polygon_new(5, 10, 11, 0),
     polygon_new(5, 11, 6, 0),
-    polygon_new(5, 0, 6, 0)
+    polygon_new(6, 0, 5, 0)
   };
 
   Model thick_model = model(thick_vert, arrLen(thick_vert), thick_poly, arrLen(thick_poly));
 
-  #define zeDim 10
+  Vec3 plane_vert[] = {
+    vec3_new(-1, 0, 1),
+    vec3_new(-1, 0, -1),
+    vec3_new(1, 0, -1),
+    vec3_new(1, 0, 1)
+  };
 
-  Object objs[(zeDim * zeDim) + 7] = {
+  Polygon plane_poly[] = {
+    polygon_new(0, 1, 2, 0),
+    polygon_new(0, 2, 3, 0)
+  };
+
+  Model plane_model = model(plane_vert, arrLen(plane_vert), plane_poly, arrLen(plane_poly));
+
+  Object objs[] = {
     object_new(&models[0], colors + 7, vec3_new(-20, 5, 19.8), 100),
     object_new(&models[1], colors + 7, vec3_new(-20, 5, 19.8), 90),
     object_new(&models[2], colors + 7, vec3_new(-20, 5, 19.8), 40),
     object_new(&backdropModel, colors + 7, vec3_new(-20, 5, 19.8), 5),
     object_new(&backdropModel, colors + 3, vec3_new(-20, 5, 19.9), 120),
     object_new(&thick_model, colors + 2, vec3_new(-20, 5, 20), 130),
-    object_new(&zeCube_model, colors, vec3_new(0, 0, 0), 5)
+    object_new(&zeCube_model, colors, vec3_new(0, 0, 0), 5),
+    object_new(&zeCube_model, colors + 4, vec3_new(0, 0, -200), 10),
+    object_new(&zeInv_model, colors + 7, vec3_new(0, 0, -200), 11),
+    //object_new(&plane_model, colors + 1, vec3_new(0, 100, 0), 1000)
   };
-
-  for(i32 i = 0; i < zeDim; ++i)
-  for(i32 j = 0; j < zeDim; ++j){
-    Object *objIns = objs + 7 + zeDim * i + j;
-    *objIns = object_new(&zeCube_model, colors + ((i + j) % 8), vec3_new(i * 40, j * 40, 500), 20);
-  }
 
   const u32 objLen = arrLen(objs);
 

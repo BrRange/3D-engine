@@ -57,6 +57,6 @@ Vec2 vec2_normal(Vec2 v);
 
 f32 vec2_edge(Vec2 a, Vec2 b, Vec2 c);
 
-void vec2_bound(Vec2 a, Vec2 b, Vec2 c, u32 bounds[4]);
+void vec2_bound(Vec2 a, Vec2 b, Vec2 c, i32 bounds[4]);
 
 #endif

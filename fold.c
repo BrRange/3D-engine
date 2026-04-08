@@ -59,7 +59,7 @@ Vec3 vec3_onCamera(const Vec3 v, const Camera *restrict cam, const Vec3 offset, 
   return vec3_rotate(dv, cam->rot);
 }
 
-Color color(u8 r, u8 g, u8 b, u8 a){
+Color color_new(u8 r, u8 g, u8 b, u8 a){
   Color c = {
     .r = r,
     .g = g,
@@ -77,10 +77,10 @@ Polygon polygon_new(u16 idx0, u16 idx1, u16 idx2, u16 colorIndex){
   return p;
 }
 
-Model model(Vec3 *vec3_new, size_t vec3Count, Polygon *polygon_new, size_t polyCount){
+Model model(Vec3 *vert, size_t vertCount, Polygon *polygon_new, size_t polyCount){
   Model mdl = {
-    .vec3 = vec3_new,
-    .vec3Count = vec3Count,
+    .vec3 = vert,
+    .vec3Count = vertCount,
     .polygon = polygon_new,
     .polyCount = polyCount
   };
@@ -122,11 +122,11 @@ void object_render(Object *obj, Canvas *canv, Camera *cam){
       vec3_onCamera(polygon_new.idx[2][vert], cam, obj->pos, obj->rot, obj->scale)
     };
 
-    f32 canvDiag = hypotf(canv->w, canv->h);
+    f32 aspecRatio = canv->w / canv->h;
 
-    proj[0].x *= cam->fieldView * canvDiag, proj[0].y *= cam->fieldView * canvDiag;
-    proj[1].x *= cam->fieldView * canvDiag, proj[1].y *= cam->fieldView * canvDiag;
-    proj[2].x *= cam->fieldView * canvDiag, proj[2].y *= cam->fieldView * canvDiag;
+    proj[0].x *= cam->fieldView * aspecRatio * 500.f, proj[0].y *= cam->fieldView / aspecRatio * 500.f;
+    proj[1].x *= cam->fieldView * aspecRatio * 500.f, proj[1].y *= cam->fieldView / aspecRatio * 500.f;
+    proj[2].x *= cam->fieldView * aspecRatio * 500.f, proj[2].y *= cam->fieldView / aspecRatio * 500.f;
     
     Color color = obj->palette[polygon_new.colorIndex];
 
@@ -144,8 +144,8 @@ void object_render(Object *obj, Canvas *canv, Camera *cam){
       extraVec3 = true;
       proj[0] = unclipped[0];
       proj[1] = unclipped[1];
-      proj[2] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
-      proj[3] = vec3_getClip(clipped[0], unclipped[1], cam->nearPlane);
+      proj[2] = vec3_getClip(clipped[0], unclipped[1], cam->nearPlane);
+      proj[3] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
       for(u8 j = 0; j < 2; ++j)
         proj[j].x /= proj[j].z, proj[j].y /= proj[j].z;
     break;
@@ -160,44 +160,72 @@ void object_render(Object *obj, Canvas *canv, Camera *cam){
       continue;
     }
 
-    u32 bounds[4];
-    f32 cx = canv->w / 2.f, cy = canv->h / 2.f;
+    shader_pixel(canv, proj, color);
+    if(extraVec3){
+      proj[1] = proj[0];
+      shader_pixel(canv, proj + 1, color);
+    }
+  }
+}
 
-    Vec2
-    a = {proj[0].x + cx, proj[0].y + cy},
-    b = {proj[1].x + cx, proj[1].y + cy},
-    c = {proj[2].x + cx, proj[2].y + cy};
+void shader_pixel(Canvas *canv, Vec3 *vertex, Color color){
+  i32 bounds[4];
+  f32 cx = canv->w / 2, cy = canv->h / 2;
+  
+  Vec2
+  a = {vertex[0].x + cx, vertex[0].y + cy},
+  b = {vertex[1].x + cx, vertex[1].y + cy},
+  c = {vertex[2].x + cx, vertex[2].y + cy};
+  
+  if(vec2_edge(a, b, c) <= 0.f) return;
+  
+  vec2_bound(a, b, c, bounds);
 
-    if(vec2_edge(c, b, a) <= 0.f) continue;
+  
+  bounds[0] = SDL_max(bounds[0], 0);
+  bounds[1] = SDL_min(bounds[1], canv->w - 1);
+  bounds[2] = SDL_max(bounds[2], 0);
+  bounds[3] = SDL_min(bounds[3], canv->h - 1);
 
-    vec2_bound(a, b, c, bounds);
+  const Vec3
+  xdiff = vec3_new(b.y - a.y, c.y - b.y, a.y - c.y),
+  ydiff = vec3_new(b.x - a.x, c.x - b.x, a.x - c.x);
 
-    bounds[0] = SDL_max(bounds[0], 0);
-    bounds[1] = SDL_min(bounds[1], canv->w - 1);
-    bounds[2] = SDL_max(bounds[2], 0);
-    bounds[3] = SDL_min(bounds[3], canv->h - 1);
+  f32 iAB = (b.x * a.y - a.x * b.y) + xdiff.x * bounds[0] - ydiff.x * bounds[2];
+  f32 iBC = (c.x * b.y - b.x * c.y) + xdiff.y * bounds[0] - ydiff.y * bounds[2];
+  f32 iCA = (a.x * c.y - c.x * a.y) + xdiff.z * bounds[0] - ydiff.z * bounds[2];
 
-    for(i32 row = bounds[2]; row < bounds[3]; ++row)
+  for(i32 row = bounds[2]; row < bounds[3]; ++row){
+    f32 AB = iAB;
+    f32 BC = iBC;
+    f32 CA = iCA;
     for(i32 col = bounds[0]; col < bounds[1]; ++col){
       usz idx = (usz)row * canv->w + col;
-      
-      Vec2 p = vec2_new(col, row);
-      f32
-      AB = vec2_edge(p, b, a),
-      BC = vec2_edge(p, c, b),
-      CA = vec2_edge(p, a, c);
 
+      if(AB < 0.f) goto skip;
+      if(BC < 0.f) goto skip;
+      if(CA < 0.f) goto skip;
+      
       f32 bary = 1.f / (AB + BC + CA);
       
-      Vec3 weight = vec3_new(BC * bary, CA * bary, AB * bary), depth = vec3_new(proj[0].z, proj[1].z, proj[2].z);
-
-      f32 thisZ = vec3_dot(weight, depth);
-
-      if(thisZ >= canv->zBuffer[idx]) continue;
-      if(AB < 0.f || BC < 0.f || CA < 0.f) continue;
+      Vec3
+      weight = vec3_new(BC * bary, CA * bary, AB * bary),
+      depth = vec3_new(1.f / vertex[0].z, 1.f / vertex[1].z, 1.f / vertex[2].z);
+      
+      f32 thisZ = 1.f / vec3_dot(weight, depth);
+      
+      if(thisZ >= canv->zBuffer[idx]) goto skip;
       canv->pixel[idx] = color;
       canv->zBuffer[idx] = thisZ;
+
+      skip:
+      AB += xdiff.x;
+      BC += xdiff.y;
+      CA += xdiff.z;
     }
+    iAB -= ydiff.x;
+    iBC -= ydiff.y;
+    iCA -= ydiff.z;
   }
 }
 

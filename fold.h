@@ -16,7 +16,7 @@ typedef struct Canvas{
   Color *pixel;
   f32 *zBuffer;
   SDL_Texture *tex;
-  u32 w, h;
+  i32 w, h;
 } Canvas;
 
 struct Camera{
@@ -41,7 +41,7 @@ void camera_moveRel(Camera *cam, const Vec3 dPos);
 
 Vec3 vec3_onCamera(const Vec3 v, const Camera *restrict cam, const Vec3 offset, const Quaternion rot, f32 scale);
 
-Color color(u8 r, u8 g, u8 b, u8 a);
+Color color_new(u8 r, u8 g, u8 b, u8 a);
 
 struct Polygon{
   u16 idx[3];
@@ -59,7 +59,7 @@ struct Model{
 };
 typedef struct Model Model;
 
-Model model(Vec3 *vec3_new, size_t vec3Count, Polygon *polygon_new, size_t polyCount);
+Model model(Vec3 *vert, size_t vertCount, Polygon *polygon_new, size_t polyCount);
 
 struct Object{
   Model *model;
@@ -77,6 +77,8 @@ void object_rotate(Object *obj, Quaternion quat);
 void object_move(Object *obj, const Vec3 dv);
 
 void object_render(Object *obj, Canvas *canv, Camera *cam);
+
+void shader_pixel(Canvas *canv, Vec3 vertex[3], Color color);
 
 Canvas canvas_new(SDL_Renderer *rend, u32 w, u32 h);
 
