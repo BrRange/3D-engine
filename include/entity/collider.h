@@ -1,7 +1,7 @@
 #ifndef COLLIDER_H_
 #define COLLIDER_H_
 
-#include "../fold.h"
+#include "include/entity/object.h"
 
 typedef enum ColliderType{
   ColliderType_Intangible,

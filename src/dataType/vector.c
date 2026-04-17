@@ -1,5 +1,6 @@
-#include "vector.h"
 #include <math.h>
+#include <SDL3/SDL_stdinc.h>
+#include "include/dataType/vector.h"
 
 Vec3 vec3_new(f32 x, f32 y, f32 z){
   Vec3 v = {

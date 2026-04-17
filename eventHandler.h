@@ -1,4 +1,4 @@
-#include "gamectrl.h"
+#include "include/dataType/gamectrl.h"
 
 bool handleEvents(KeyboardHandler *keyboardH, MouseHandler *mouseH){
   SDL_Event eve;

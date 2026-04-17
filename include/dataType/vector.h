@@ -1,7 +1,7 @@
-#ifndef VECTOR_H_
-#define VECTOR_H_
+#ifndef DATATYPE_VECTOR_H_
+#define DATATYPE_VECTOR_H_
 
-#include "rustydef.h"
+#include "include/dataType/rustydef.h"
 
 typedef struct Vec3{
   f32 x, y, z;

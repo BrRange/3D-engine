@@ -1,4 +1,4 @@
-#include "quaternion.h"
+#include "include/dataType/quaternion.h"
 #include <math.h>
 
 Quaternion quat_new(float angle, Vec3 normAxis){

@@ -1,15 +1,13 @@
 #include <SDL3/SDL.h>
-#include "fold.c"
-#include "player.c"
-#include "gamectrl.c"
-#include "Models/crystalModel.c"
-#include "Models/cubeModel.c"
-#include "Models/icosphereModel.c"
-#include "dataTypes/collider.c"
-#include "dataTypes/vector.c"
-#include "dataTypes/quaternion.c"
+#include "src/dataType/vector.c"
+#include "src/dataType/quaternion.c"
+#include "src/dataType/gamectrl.c"
+#include "src/dataType/color.c"
+#include "src/entity/camera.c"
+#include "src/entity/object.c"
+#include "src/entity/collider.c"
+#include "src/entity/player.c"
 #include "eventHandler.h"
-#include "stdfcolor.h"
 
 #define TIMEZONE -3
 
@@ -98,14 +96,14 @@ int main(){
   Camera cam = camera(vec3_new(0, 0, 0), 200, 1.f, 1.f / SDL_tanf(2.f * SDL_PI_F / 3.f / 2.f));
 
   Color colors[] = {
-    Color_Red,    // 0
-    Color_Green,  // 1
-    Color_Blue,   // 2
-    Color_White,  // 3
-    Color_Yellow, // 4
-    Color_Cyan,   // 5
-    Color_Magenta, // 6
-    Color_Black // 7
+    color_new(1, 0, 0),
+    color_new(0, 1, 0),
+    color_new(0, 0, 1),
+    color_new(1, 1, 1),
+    color_new(0, 1, 1),
+    color_new(1, 0, 1),
+    color_new(1, 1, 0),
+    color_new(0, 0, 0)
   };
 
   Vec3 zeCube_vert[] = {
