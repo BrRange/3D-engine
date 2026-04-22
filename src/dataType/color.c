@@ -66,6 +66,7 @@ void shader_pixel(Canvas *canv, Vec3 *vertex, Color color){
       f32 thisZ = 1.f / vec3_dot(weight, depth);
       
       if(thisZ >= canv->zBuffer[idx]) goto skip;
+
       PixelColor pcolor = pixelColor_new(255 * color.r, 255 * color.g, 255 * color.b, 255);
       canv->pixel[idx] = pcolor;
       canv->zBuffer[idx] = thisZ;

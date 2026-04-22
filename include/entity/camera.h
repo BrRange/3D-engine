@@ -11,7 +11,7 @@ struct Camera{
 };
 typedef struct Camera Camera;
 
-Camera camera(const Vec3 v, f32 farPlane, f32 nearPlane, f32 fieldView);
+Camera camera_new(const Vec3 v, f32 farPlane, f32 nearPlane, f32 fieldView);
 
 Vec3 camera_viewVec3(const Camera *cam);
 
@@ -23,6 +23,6 @@ void camera_moveAbs(Camera *cam, const Vec3 dPos);
 
 void camera_moveRel(Camera *cam, const Vec3 dPos);
 
-Vec3 vec3_onCamera(const Vec3 v, const Camera *restrict cam, const Vec3 offset, const Quaternion rot, f32 scale);
+Vec3 vec3_onCamera(Vec3 v, const Camera *restrict cam);
 
 #endif

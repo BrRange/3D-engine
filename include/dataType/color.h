@@ -3,12 +3,14 @@
 
 #include <SDL3/SDL_render.h>
 #include "include/dataType/vector.h"
+#include "include/entity/camera.h"
 
 typedef union Color{
   f32 color[3];
   struct{
     f32 r, g, b;
   };
+  Vec3 asVec3;
 } Color;
 
 Color color_new(f32 r, f32 g, f32 b);

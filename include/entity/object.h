@@ -20,7 +20,7 @@ struct Model{
 };
 typedef struct Model Model;
 
-Model model(Vec3 *vert, size_t vertCount, Polygon *polygon_new, size_t polyCount);
+Model model(Vec3 *vert, size_t vertCount, Polygon *polygon, size_t polyCount);
 
 struct Object{
   Model *model;

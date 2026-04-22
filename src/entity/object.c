@@ -8,11 +8,11 @@ Polygon polygon_new(u16 idx0, u16 idx1, u16 idx2, u16 colorIndex){
   return p;
 }
 
-Model model(Vec3 *vert, size_t vertCount, Polygon *polygon_new, size_t polyCount){
+Model model(Vec3 *vert, size_t vertCount, Polygon *polygon, size_t polyCount){
   Model mdl = {
     .vec3 = vert,
     .vec3Count = vertCount,
-    .polygon = polygon_new,
+    .polygon = polygon,
     .polyCount = polyCount
   };
   return mdl;
@@ -47,12 +47,35 @@ void object_render(Object *obj, Canvas *canv, Camera *cam){
 
   for(size_t i = 0; i < obj->model->polyCount; ++i){
     clipCount = unclipCount = 0;
-    Polygon polygon_new = obj->model->polygon[i];
+    Polygon polygon = obj->model->polygon[i];
+
+    Vec3 vertex[3] = {polygon.idx[0][vert], polygon.idx[1][vert], polygon.idx[2][vert]};
+
+    vertex[0] = vec3_rotate(vertex[0], obj->rot);
+    vertex[1] = vec3_rotate(vertex[1], obj->rot);
+    vertex[2] = vec3_rotate(vertex[2], obj->rot);
+
+    vertex[0] = vec3_mul(vertex[0], obj->scale);
+    vertex[1] = vec3_mul(vertex[1], obj->scale);
+    vertex[2] = vec3_mul(vertex[2], obj->scale);
+
+    vertex[0] = vec3_add(vertex[0], obj->pos);
+    vertex[1] = vec3_add(vertex[1], obj->pos);
+    vertex[2] = vec3_add(vertex[2], obj->pos);
+
+    Vec3 sun = vec3_new(1, -1, -1);
+    sun = vec3_normal(sun);
+
+    Vec3 cross = vec3_cross(vec3_sub(vertex[1], vertex[0]), vec3_sub(vertex[2], vertex[0]));
+    cross = vec3_normal(cross);
+
+    float lightPower = vec3_dot(cross, sun);
+    lightPower = SDL_max(0.f, lightPower);
 
     Vec3 proj[4] = {
-      vec3_onCamera(polygon_new.idx[0][vert], cam, obj->pos, obj->rot, obj->scale),
-      vec3_onCamera(polygon_new.idx[1][vert], cam, obj->pos, obj->rot, obj->scale),
-      vec3_onCamera(polygon_new.idx[2][vert], cam, obj->pos, obj->rot, obj->scale)
+      vec3_onCamera(vertex[0], cam),
+      vec3_onCamera(vertex[1], cam),
+      vec3_onCamera(vertex[2], cam)
     };
 
     f32 aspecRatio = canv->w / canv->h;
@@ -61,7 +84,8 @@ void object_render(Object *obj, Canvas *canv, Camera *cam){
     proj[1].x *= cam->fieldView * aspecRatio * 500.f, proj[1].y *= cam->fieldView / aspecRatio * 500.f;
     proj[2].x *= cam->fieldView * aspecRatio * 500.f, proj[2].y *= cam->fieldView / aspecRatio * 500.f;
 
-    Color color = obj->palette[polygon_new.colorIndex];
+    Color color = obj->palette[polygon.colorIndex];
+    color.asVec3 = vec3_mul(color.asVec3, lightPower);
 
     for(u8 j = 0; j < 3; ++j)
     if(proj[j].z <= cam->nearPlane) clipped[clipCount++] = proj[j];

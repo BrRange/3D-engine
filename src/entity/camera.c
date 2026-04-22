@@ -1,7 +1,7 @@
 #include <SDL3/SDL_stdinc.h>
 #include "include/entity/camera.h"
 
-Camera camera(const Vec3 v, f32 farPlane, f32 nearPlane, f32 fieldView){
+Camera camera_new(const Vec3 v, f32 farPlane, f32 nearPlane, f32 fieldView){
   Camera cam = {
     .pos = v,
     .farPlane = farPlane,
@@ -49,12 +49,7 @@ void camera_moveRel(Camera *cam, const Vec3 dPos){
     cam->pos.z += dPos.x * -ys + dPos.y * -yc * ps + dPos.z * pc * yc;
 }
 
-Vec3 vec3_onCamera(const Vec3 v, const Camera *restrict cam, const Vec3 offset, const Quaternion rot, f32 scale){
-  Vec3 dv = vec3_rotate(v, rot);
-  
-  dv.x = dv.x * scale - cam->pos.x + offset.x,
-  dv.y = dv.y * scale - cam->pos.y + offset.y,
-  dv.z = dv.z * scale - cam->pos.z + offset.z;
-
-  return vec3_rotate(dv, cam->rot);
+Vec3 vec3_onCamera(Vec3 v, const Camera *restrict cam){
+  v = vec3_sub(v, cam->pos);
+  return vec3_rotate(v, cam->rot);
 }

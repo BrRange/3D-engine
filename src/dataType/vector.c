@@ -57,6 +57,7 @@ f32 vec3_mag(Vec3 a){
 
 Vec3 vec3_normal(Vec3 v){
   float scale = vec3_mag(v);
+  if(scale == 0.f) return vec3_new(0, 0, 0);
   return vec3_div(v, scale);
 }
 

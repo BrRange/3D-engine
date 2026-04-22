@@ -93,7 +93,7 @@ int main(){
   MouseHandler moHandler = {0};
   Canvas canv = canvas_new(rend, 1280, 720);
 
-  Camera cam = camera(vec3_new(0, 0, 0), 200, 1.f, 1.f / SDL_tanf(2.f * SDL_PI_F / 3.f / 2.f));
+  Camera cam = camera_new(vec3_new(0, 0, 0), 200, 1.f, 1.f / SDL_tanf(2.f * SDL_PI_F / 3.f / 2.f));
 
   Color colors[] = {
     color_new(1, 0, 0),
