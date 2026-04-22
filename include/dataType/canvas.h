@@ -1,9 +1,9 @@
-#ifndef DATATYPE_COLOR_H_
-#define DATATYPE_COLOR_H_
+#ifndef DATATYPE_CANVAS_H_
+#define DATATYPE_CANVAS_H_
 
 #include <SDL3/SDL_render.h>
-#include "include/dataType/vector.h"
-#include "include/entity/camera.h"
+#include "dataType/vector.h"
+#include "entity/camera.h"
 
 typedef union Color{
   f32 color[3];

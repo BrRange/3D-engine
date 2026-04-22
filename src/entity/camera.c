@@ -1,5 +1,5 @@
 #include <SDL3/SDL_stdinc.h>
-#include "include/entity/camera.h"
+#include "entity/camera.h"
 
 Camera camera_new(const Vec3 v, f32 farPlane, f32 nearPlane, f32 fieldView){
   Camera cam = {

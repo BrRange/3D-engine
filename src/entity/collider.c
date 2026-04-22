@@ -1,4 +1,4 @@
-#include "include/entity/collider.h"
+#include "entity/collider.h"
 
 Collider_Sphere collider_newSphere(Object *anchor, Vec3 offset, float radius){
   Collider_Sphere sphere = {

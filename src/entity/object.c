@@ -1,4 +1,4 @@
-#include "include/entity/object.h"
+#include "entity/object.h"
 
 Polygon polygon_new(u16 idx0, u16 idx1, u16 idx2, u16 colorIndex){
   Polygon p = {
@@ -41,7 +41,7 @@ void object_move(Object *obj, const Vec3 dv){
 
 const Vec3 vec3_id = {1, 1, 1};
 
-void object_render(Object *obj, Canvas *canv, Camera *cam){
+void object_render(Object *obj, Canvas *canv, Camera *cam, LightSource_Packed *sources){
   Vec3 *vert = obj->model->vec3, clipped[3], unclipped[3];
   u8 clipCount, unclipCount;
 
@@ -63,14 +63,14 @@ void object_render(Object *obj, Canvas *canv, Camera *cam){
     vertex[1] = vec3_add(vertex[1], obj->pos);
     vertex[2] = vec3_add(vertex[2], obj->pos);
 
-    Vec3 sun = vec3_new(1, -1, -1);
-    sun = vec3_normal(sun);
-
-    Vec3 cross = vec3_cross(vec3_sub(vertex[1], vertex[0]), vec3_sub(vertex[2], vertex[0]));
-    cross = vec3_normal(cross);
-
-    float lightPower = vec3_dot(cross, sun);
-    lightPower = SDL_max(0.f, lightPower);
+    Vec3 lightPower = lightSource_iluminate(&sources[0].lightSource, vertex);
+    lightPower.x = SDL_clamp(lightPower.x, 0.f, 1.f);
+    lightPower.y = SDL_clamp(lightPower.y, 0.f, 1.f);
+    lightPower.z = SDL_clamp(lightPower.z, 0.f, 1.f);
+    lightPower = vec3_add(lightPower, lightSource_iluminate(&sources[1].lightSource, vertex));
+    lightPower.x = SDL_clamp(lightPower.x, 0.f, 1.f);
+    lightPower.y = SDL_clamp(lightPower.y, 0.f, 1.f);
+    lightPower.z = SDL_clamp(lightPower.z, 0.f, 1.f);
 
     Vec3 proj[4] = {
       vec3_onCamera(vertex[0], cam),
@@ -85,7 +85,7 @@ void object_render(Object *obj, Canvas *canv, Camera *cam){
     proj[2].x *= cam->fieldView * aspecRatio * 500.f, proj[2].y *= cam->fieldView / aspecRatio * 500.f;
 
     Color color = obj->palette[polygon.colorIndex];
-    color.asVec3 = vec3_mul(color.asVec3, lightPower);
+    color.asVec3 = vec3_piecewise(color.asVec3, lightPower);
 
     for(u8 j = 0; j < 3; ++j)
     if(proj[j].z <= cam->nearPlane) clipped[clipCount++] = proj[j];

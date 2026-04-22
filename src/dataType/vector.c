@@ -1,6 +1,6 @@
 #include <math.h>
 #include <SDL3/SDL_stdinc.h>
-#include "include/dataType/vector.h"
+#include "dataType/vector.h"
 
 Vec3 vec3_new(f32 x, f32 y, f32 z){
   Vec3 v = {
@@ -57,8 +57,16 @@ f32 vec3_mag(Vec3 a){
 
 Vec3 vec3_normal(Vec3 v){
   float scale = vec3_mag(v);
-  if(scale == 0.f) return vec3_new(0, 0, 0);
+  if(scale == 0.f) return vec3_expand(0);
   return vec3_div(v, scale);
+}
+
+Vec3 vec3_piecewise(Vec3 a, Vec3 b){
+  return vec3_new(a.x * b.x, a.y * b.y, a.z * b.z);
+}
+
+Vec3 vec3_expand(float f){
+  return vec3_new(f, f, f);
 }
 
 Vec2 vec2_new(f32 x, f32 y){
@@ -105,11 +113,20 @@ f32 vec2_mag(Vec2 v){
 
 Vec2 vec2_normal(Vec2 v){
   f32 mag = vec2_mag(v);
+  if(mag == 0.f) return vec2_expand(0);
   return vec2_div(v, mag);
 }
 
 f32 vec2_edge(Vec2 a, Vec2 b, Vec2 c){
   return (b.x - a.x) * (a.y - c.y) + (b.y - a.y) * (c.x - a.x);
+}
+
+Vec2 vec2_piecewise(Vec2 a, Vec2 b){
+  return vec2_new(a.x * b.x, a.y * b.y);
+}
+
+Vec2 vec2_expand(float f){
+  return vec2_new(f, f);
 }
 
 void vec2_bound(Vec2 a, Vec2 b, Vec2 c, i32 bounds[4]){

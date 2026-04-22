@@ -1,5 +1,5 @@
 #include <SDL3/SDL_render.h>
-#include "include/entity/player.h"
+#include "entity/player.h"
 
 Player player_new(Object *body, Vec3 pos){
   Player pl = {

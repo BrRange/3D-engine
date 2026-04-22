@@ -1,7 +1,7 @@
 #ifndef COLLIDER_H_
 #define COLLIDER_H_
 
-#include "include/entity/object.h"
+#include "entity/object.h"
 
 typedef enum ColliderType{
   ColliderType_Intangible,
@@ -52,5 +52,12 @@ bool collider_pill_pill(Collider_Pill *a, Collider_Pill *b);
 bool collider_pill_beam(Collider_Pill *pill, Collider_Beam *beam);
 
 bool collider_beam_beam(Collider_Beam *a, Collider_Beam *b);
+
+typedef union Collider_Packed{
+  Collider collider;
+  Collider_Sphere sphere;
+  Collider_Pill pill;
+  Collider_Beam beam;
+} Collider_Packed;
 
 #endif

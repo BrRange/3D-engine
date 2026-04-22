@@ -1,7 +1,7 @@
 #ifndef CAMERA_H_
 #define CAMERA_H_
 
-#include "include/dataType/quaternion.h"
+#include "dataType/quaternion.h"
 
 struct Camera{
   Quaternion rot;
