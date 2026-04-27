@@ -1,7 +1,7 @@
 #ifndef DATATYPE_VECTOR_H_
 #define DATATYPE_VECTOR_H_
 
-#include "include/dataType/rustydef.h"
+#include "dataType/rustydef.h"
 
 typedef struct Vec3{
   f32 x, y, z;
@@ -31,6 +31,10 @@ f32 vec3_mag(Vec3 v);
 
 Vec3 vec3_normal(Vec3 v);
 
+Vec3 vec3_piecewise(Vec3 a, Vec3 b);
+
+Vec3 vec3_expand(float f);
+
 typedef struct Vec2{
   f32 x, y;
 } Vec2;
@@ -56,6 +60,10 @@ f32 vec2_mag(Vec2 v);
 Vec2 vec2_normal(Vec2 v);
 
 f32 vec2_edge(Vec2 a, Vec2 b, Vec2 c);
+
+Vec2 vec2_piecewise(Vec2 a, Vec2 b);
+
+Vec2 vec2_expand(float f);
 
 void vec2_bound(Vec2 a, Vec2 b, Vec2 c, i32 bounds[4]);
 

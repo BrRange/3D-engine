@@ -1,7 +1,7 @@
 #ifndef PLAYER_H_
 #define PLAYER_H_
 
-#include "include/entity/object.h"
+#include "entity/object.h"
 
 typedef struct Player{
   Object *body;

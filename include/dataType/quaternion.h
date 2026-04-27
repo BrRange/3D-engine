@@ -1,7 +1,7 @@
 #ifndef DATATYPE_QUATERNION_H_
 #define DATATYPE_QUATERNION_H_
 
-#include "include/dataType/vector.h"
+#include "dataType/vector.h"
 
 typedef struct Quaternion{
   f32 r, x, y, z;

@@ -2,14 +2,13 @@
 #include "src/dataType/vector.c"
 #include "src/dataType/quaternion.c"
 #include "src/dataType/gamectrl.c"
-#include "src/dataType/color.c"
+#include "src/dataType/canvas.c"
 #include "src/entity/camera.c"
 #include "src/entity/object.c"
 #include "src/entity/collider.c"
 #include "src/entity/player.c"
+#include "src/entity/lightSource.c"
 #include "eventHandler.h"
-
-#define TIMEZONE -3
 
 typedef struct CommonData{
   SDL_Time *deltaT;
@@ -20,6 +19,7 @@ typedef struct CommonData{
   Object *objs;
   usz objCount;
   Collider *sphere, *pill;
+  LightSource_Packed sources[2];
 } CommonData;
 
 void tick(SDL_Renderer *rend, CommonData *data){
@@ -71,7 +71,7 @@ void render(SDL_Renderer *rend, CommonData *data){
   canvas_clear(canv);
 
   for(usz i = 0; i < data->objCount; ++i)
-    object_render(data->objs + i, canv, data->cam);
+    object_render(data->objs + i, canv, data->cam, data->sources);
 
   canvas_render(canv, rend);
 
@@ -240,10 +240,9 @@ int main(){
     object_new(&backdropModel, colors + 7, vec3_new(-20, 5, 19.8), 5),
     object_new(&backdropModel, colors + 3, vec3_new(-20, 5, 19.9), 120),
     object_new(&thick_model, colors + 2, vec3_new(-20, 5, 20), 130),
-    object_new(&zeCube_model, colors, vec3_new(0, 0, 0), 5),
+    object_new(&zeCube_model, colors, vec3_expand(0), 5),
     object_new(&zeCube_model, colors + 4, vec3_new(0, 0, -200), 10),
-    object_new(&zeInv_model, colors + 7, vec3_new(0, 0, -200), 11),
-    //object_new(&plane_model, colors + 1, vec3_new(0, 100, 0), 1000)
+    object_new(&zeInv_model, colors + 7, vec3_new(0, 0, -200), 11)
   };
 
   const u32 objLen = arrLen(objs);
@@ -252,15 +251,14 @@ int main(){
   for(u32 u = 0; u < objLen; ++u) renderList[u] = u;
 
   SDL_GetCurrentTime(&dtime);
-  float clockAngle = dtime / 1e9f;
-  Quaternion time = quat_new(clockAngle * M_PI / 30.f, vec3_new(0, 0, 1));
+  SDL_DateTime dateTime;
+  SDL_TimeToDateTime(dtime, &dateTime, true);
+
+  Quaternion time = quat_new(dateTime.second * M_PI / 30.f, vec3_new(0, 0, 1));
   object_rotate(objs + 0, time);
-  clockAngle /= 60.f;
-  time = quat_new(clockAngle * M_PI / 30.f, vec3_new(0, 0, 1));
+  time = quat_new(dateTime.minute * M_PI / 30.f, vec3_new(0, 0, 1));
   object_rotate(objs + 1, time);
-  clockAngle /= 60.f;
-  clockAngle += TIMEZONE;
-  time = quat_new(clockAngle * M_PI / 6.f, vec3_new(0, 0, 1));
+  time = quat_new(dateTime.hour * M_PI / 6.f, vec3_new(0, 0, 1));
   object_rotate(objs + 2, time);
 
   Collider_Sphere playerColl = collider_newSphere(objs + 6, vec3_new(0, 0, 0), objs[6].scale);
@@ -275,7 +273,11 @@ int main(){
     .canv = &canv,
     .objCount = objLen,
     .sphere = (Collider*)&playerColl,
-    .pill = (Collider*)&secondColl
+    .pill = (Collider*)&secondColl,
+    .sources = {
+      {.diffuse = lightSource_newDiffuse(vec3_new(1.4, 1.4, 0.8), vec3_new(1, -1, -1))},
+      {.ambient = lightSource_newAmbient(vec3_new(0.4, 0.6, 0.4))}
+    }
   };
 
   bool running = true;

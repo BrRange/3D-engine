@@ -1,4 +1,4 @@
-#include "include/dataType/color.h"
+#include "dataType/canvas.h"
 
 Color color_new(f32 r, f32 g, f32 b){
   Color c = {
@@ -45,6 +45,7 @@ void shader_pixel(Canvas *canv, Vec3 *vertex, Color color){
   f32 iBC = (c.x * b.y - b.x * c.y) + xdiff.y * bounds[0] - ydiff.y * bounds[2];
   f32 iCA = (a.x * c.y - c.x * a.y) + xdiff.z * bounds[0] - ydiff.z * bounds[2];
 
+  f32 bary = 1.f / (iAB + iBC + iCA);
   
   for(i32 row = bounds[2]; row < bounds[3]; ++row){
     f32 AB = iAB;
@@ -56,8 +57,6 @@ void shader_pixel(Canvas *canv, Vec3 *vertex, Color color){
       if(AB < 0.f) goto skip;
       if(BC < 0.f) goto skip;
       if(CA < 0.f) goto skip;
-
-      f32 bary = 1.f / (AB + BC + CA);
       
       Vec3
       weight = vec3_new(BC * bary, CA * bary, AB * bary),

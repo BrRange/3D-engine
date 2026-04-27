@@ -1,8 +1,9 @@
 #ifndef OBJECT_H_
 #define OBJECT_H_
 
-#include "include/dataType/color.h"
-#include "include/entity/camera.h"
+#include "dataType/canvas.h"
+#include "entity/camera.h"
+#include "entity/lightSource.h"
 
 struct Polygon{
   u16 idx[3];
@@ -37,6 +38,6 @@ void object_rotate(Object *obj, Quaternion quat);
 
 void object_move(Object *obj, const Vec3 dv);
 
-void object_render(Object *obj, Canvas *canv, Camera *cam);
+void object_render(Object *obj, Canvas *canv, Camera *cam, LightSource_Packed *sources);
 
 #endif

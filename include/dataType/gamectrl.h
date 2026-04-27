@@ -1,7 +1,7 @@
 #ifndef GAME_CONTROL_H_
 #define GAME_CONTROL_H_
 
-#include "include/dataType/vector.h"
+#include "dataType/vector.h"
 
 struct KeyboardHandler{
   u32 keys[6];
