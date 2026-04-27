@@ -18,14 +18,17 @@ typedef struct CommonData{
   Canvas *canv;
   Object *objs;
   usz objCount;
-  Collider *sphere, *pill;
+  Collider_Packed *activeColl, *passiveColl;
+  usz activeCollLen, passiveCollLen;
   LightSource_Packed sources[2];
 } CommonData;
 
 void tick(SDL_Renderer *rend, CommonData *data){
+  static bool ableJump = false;
+  static f32 vertical = 0.f;
   f32 dt = *data->deltaT / 1000.f;
 
-  f32 speed = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? dt * 600.f : dt * 60.f;
+  f32 speed = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? dt * 120.f : dt * 60.f;
 
   Object *player = data->objs + 6;
 
@@ -44,23 +47,42 @@ void tick(SDL_Renderer *rend, CommonData *data){
 
   camera_rotate(data->cam, mouseM.x * 0.01f, mouseM.y * 0.01f);
   Vec3 cameraView = camera_viewVec3(data->cam), rotated;
+  Vec3 noFlying = cameraView;
+  noFlying.y = 0;
 
-  if(keyboardH_has(data->keyboardH, SDLK_W)) object_move(player, vec3_mul(cameraView, speed));
-  if(keyboardH_has(data->keyboardH, SDLK_S)) object_move(player, vec3_mul(cameraView, -speed));
+  if(keyboardH_has(data->keyboardH, SDLK_W)) object_move(player, vec3_mul(noFlying, speed));
+  if(keyboardH_has(data->keyboardH, SDLK_S)) object_move(player, vec3_mul(noFlying, -speed));
   rotated = vec3_new(-cameraView.z, 0, cameraView.x);
   rotated = vec3_div(rotated, vec3_mag(rotated));
   if(keyboardH_has(data->keyboardH, SDLK_A)) object_move(player, vec3_mul(rotated, speed));
   if(keyboardH_has(data->keyboardH, SDLK_D)) object_move(player, vec3_mul(rotated, -speed));
-  if(keyboardH_has(data->keyboardH, SDLK_SPACE)) object_move(player, vec3_new(0, -speed, 0));
-  if(keyboardH_has(data->keyboardH, SDLK_LCTRL)) object_move(player, vec3_new(0, speed, 0));
+  //if(keyboardH_has(data->keyboardH, SDLK_SPACE)) object_move(player, vec3_new(0, -speed, 0));
+  if(keyboardH_has(data->keyboardH, SDLK_SPACE) && ableJump){
+    vertical = -3.f;
+    ableJump = false;
+  }
+  //if(keyboardH_has(data->keyboardH, SDLK_LCTRL)) object_move(player, vec3_new(0, speed, 0));
 
   cameraView = vec3_mul(cameraView, 80);
   cameraView = vec3_sub(player->pos, cameraView);
   cameraView = vec3_sub(cameraView, data->cam->pos);
   camera_moveAbs(data->cam, vec3_div(cameraView, 4));
 
-  if(collider_collide(data->sphere, data->pill)) data->objs[6].scale = 10;
-  else data->objs[6].scale = 5;
+  player->pos = vec3_add(player->pos, vec3_new(0, vertical, 0));
+  if(vertical < 2.f) vertical += 0.2f;
+
+  CollisionInfo cinfo;
+
+  for(usz i = 0; i < data->passiveCollLen; ++i){
+    Collider *act = &data->activeColl->collider, *pass = &(data->passiveColl + i)->collider;
+    if(collider_collide(act, pass, &cinfo)){
+      if(cinfo.normal.y > 0.9f) ableJump = true;
+      else ableJump = false;
+      f32 invert = cinfo.source == act ? 1 : -1;
+      cinfo.normal = vec3_mul(cinfo.normal, cinfo.penetration * invert);
+      player->pos = vec3_add(player->pos, cinfo.normal);
+    }
+  }
 }
 
 void render(SDL_Renderer *rend, CommonData *data){
@@ -234,15 +256,16 @@ int main(){
   Model plane_model = model(plane_vert, arrLen(plane_vert), plane_poly, arrLen(plane_poly));
 
   Object objs[] = {
-    object_new(&models[0], colors + 7, vec3_new(-20, 5, 19.8), 100),
-    object_new(&models[1], colors + 7, vec3_new(-20, 5, 19.8), 90),
-    object_new(&models[2], colors + 7, vec3_new(-20, 5, 19.8), 40),
-    object_new(&backdropModel, colors + 7, vec3_new(-20, 5, 19.8), 5),
-    object_new(&backdropModel, colors + 3, vec3_new(-20, 5, 19.9), 120),
-    object_new(&thick_model, colors + 2, vec3_new(-20, 5, 20), 130),
+    object_new(&models[0], colors + 7, vec3_new(-20, 5 - 100, 19.8), 100),
+    object_new(&models[1], colors + 7, vec3_new(-20, 5 - 100, 19.8), 90),
+    object_new(&models[2], colors + 7, vec3_new(-20, 5 - 100, 19.8), 40),
+    object_new(&backdropModel, colors + 7, vec3_new(-20, 5 - 100, 19.8), 5),
+    object_new(&backdropModel, colors + 3, vec3_new(-20, 5 - 100, 19.9), 120),
+    object_new(&thick_model, colors + 2, vec3_new(-20, 5 - 100, 20), 130),
     object_new(&zeCube_model, colors, vec3_expand(0), 5),
     object_new(&zeCube_model, colors + 4, vec3_new(0, 0, -200), 10),
-    object_new(&zeInv_model, colors + 7, vec3_new(0, 0, -200), 11)
+    object_new(&zeInv_model, colors + 7, vec3_new(0, 0, -200), 11),
+    object_new(&plane_model, colors + 2, vec3_new(0, 15, 0), 1000)
   };
 
   const u32 objLen = arrLen(objs);
@@ -261,8 +284,11 @@ int main(){
   time = quat_new(dateTime.hour * M_PI / 6.f, vec3_new(0, 0, 1));
   object_rotate(objs + 2, time);
 
-  Collider_Sphere playerColl = collider_newSphere(objs + 6, vec3_new(0, 0, 0), objs[6].scale);
-  Collider_Pill secondColl = collider_newPill(objs + 3, vec3_new(0, -100, 0), vec3_new(0, 100, 0), 5);
+  Collider_Packed active[1] = {{ .sphere = collider_newSphere(objs + 6, vec3_new(0, 0, 0), objs[6].scale) }};
+  Collider_Packed passive[2] = {
+    {.box = collider_newBox(objs + 7, vec3_expand(0), vec3_expand(objs[7].scale))},
+    {.box = collider_newBox(objs + 9, vec3_expand(0), vec3_new(objs[9].scale, 0, objs[9].scale))}
+  };
 
   CommonData data = {
     .deltaT = &dtime,
@@ -272,14 +298,15 @@ int main(){
     .objs = objs,
     .canv = &canv,
     .objCount = objLen,
-    .sphere = (Collider*)&playerColl,
-    .pill = (Collider*)&secondColl,
+    .activeColl = active,
+    .activeCollLen = arrLen(active),
+    .passiveColl = passive,
+    .passiveCollLen = arrLen(passive),
     .sources = {
       {.diffuse = lightSource_newDiffuse(vec3_new(1.4, 1.4, 0.8), vec3_new(1, -1, -1))},
       {.ambient = lightSource_newAmbient(vec3_new(0.4, 0.6, 0.4))}
     }
   };
-
   bool running = true;
 
  for(;;){

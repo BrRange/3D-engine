@@ -81,6 +81,7 @@ typedef union Collider_Packed{
   Collider_Sphere sphere;
   Collider_Pill pill;
   Collider_Beam beam;
+  Collider_Box box;
 } Collider_Packed;
 
 #endif
