@@ -33,7 +33,7 @@ Vec3 vec3_normal(Vec3 v);
 
 Vec3 vec3_piecewise(Vec3 a, Vec3 b);
 
-Vec3 vec3_expand(float f);
+const Vec3 vec3_expand(float f);
 
 typedef struct Vec2{
   f32 x, y;

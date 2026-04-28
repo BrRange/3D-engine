@@ -25,10 +25,10 @@ typedef struct CommonData{
 
 void tick(SDL_Renderer *rend, CommonData *data){
   static bool ableJump = false;
-  static f32 vertical = 0.f;
+  static Vec3 pSpeed;
   f32 dt = *data->deltaT / 1000.f;
 
-  f32 speed = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? dt * 120.f : dt * 60.f;
+  f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? dt * 220.f : dt * 60.f;
 
   Object *player = data->objs + 6;
 
@@ -47,42 +47,49 @@ void tick(SDL_Renderer *rend, CommonData *data){
 
   camera_rotate(data->cam, mouseM.x * 0.01f, mouseM.y * 0.01f);
   Vec3 cameraView = camera_viewVec3(data->cam), rotated;
-  Vec3 noFlying = cameraView;
-  noFlying.y = 0;
 
-  if(keyboardH_has(data->keyboardH, SDLK_W)) object_move(player, vec3_mul(noFlying, speed));
-  if(keyboardH_has(data->keyboardH, SDLK_S)) object_move(player, vec3_mul(noFlying, -speed));
+  player->pos = vec3_add(player->pos, vec3_mul(pSpeed, dt));
+
+  rotated = vec3_new(cameraView.x, 0, cameraView.z);
+  rotated = vec3_normal(rotated);
+  if(keyboardH_has(data->keyboardH, SDLK_W)) pSpeed = vec3_add(pSpeed, vec3_mul(rotated, acc));
+  if(keyboardH_has(data->keyboardH, SDLK_S)) pSpeed = vec3_sub(pSpeed, vec3_mul(rotated, acc));
   rotated = vec3_new(-cameraView.z, 0, cameraView.x);
-  rotated = vec3_div(rotated, vec3_mag(rotated));
-  if(keyboardH_has(data->keyboardH, SDLK_A)) object_move(player, vec3_mul(rotated, speed));
-  if(keyboardH_has(data->keyboardH, SDLK_D)) object_move(player, vec3_mul(rotated, -speed));
-  //if(keyboardH_has(data->keyboardH, SDLK_SPACE)) object_move(player, vec3_new(0, -speed, 0));
-  if(keyboardH_has(data->keyboardH, SDLK_SPACE) && ableJump){
-    vertical = -3.f;
-    ableJump = false;
-  }
-  //if(keyboardH_has(data->keyboardH, SDLK_LCTRL)) object_move(player, vec3_new(0, speed, 0));
+  rotated = vec3_normal(rotated);
+  if(keyboardH_has(data->keyboardH, SDLK_A)) pSpeed = vec3_add(pSpeed, vec3_mul(rotated, acc));
+  if(keyboardH_has(data->keyboardH, SDLK_D)) pSpeed = vec3_sub(pSpeed, vec3_mul(rotated, acc));
+  //if(keyboardH_has(data->keyboardH, SDLK_SPACE)) object_move(player, vec3_new(0, -acc, 0));
+  //if(keyboardH_has(data->keyboardH, SDLK_LCTRL)) object_move(player, vec3_new(0, acc, 0));
 
   cameraView = vec3_mul(cameraView, 80);
   cameraView = vec3_sub(player->pos, cameraView);
   cameraView = vec3_sub(cameraView, data->cam->pos);
   camera_moveAbs(data->cam, vec3_div(cameraView, 4));
 
-  player->pos = vec3_add(player->pos, vec3_new(0, vertical, 0));
-  if(vertical < 2.f) vertical += 0.2f;
-
   CollisionInfo cinfo;
-
+  Vec3 jumpNormal;
+  ableJump = false;
+  
   for(usz i = 0; i < data->passiveCollLen; ++i){
     Collider *act = &data->activeColl->collider, *pass = &(data->passiveColl + i)->collider;
     if(collider_collide(act, pass, &cinfo)){
-      if(cinfo.normal.y > 0.9f) ableJump = true;
-      else ableJump = false;
+      if(cinfo.normal.y > 0.7f){
+        jumpNormal = cinfo.normal;
+        ableJump = true;
+      }
       f32 invert = cinfo.source == act ? 1 : -1;
-      cinfo.normal = vec3_mul(cinfo.normal, cinfo.penetration * invert);
-      player->pos = vec3_add(player->pos, cinfo.normal);
+      pSpeed = vec3_sub(pSpeed, vec3_mul(cinfo.normal, vec3_mag(pSpeed)));
+      cinfo.normal = vec3_mul(cinfo.normal, invert);
+      player->pos = vec3_add(player->pos, vec3_mul(cinfo.normal, cinfo.penetration));
     }
   }
+
+  if(keyboardH_has(data->keyboardH, SDLK_SPACE) && ableJump){
+    pSpeed = vec3_add(pSpeed, vec3_mul(jumpNormal, -240));
+  }
+
+  pSpeed.y += 280 * dt;
+  pSpeed = vec3_mul(pSpeed, 1 - 0.999 * dt);
 }
 
 void render(SDL_Renderer *rend, CommonData *data){
@@ -99,6 +106,58 @@ void render(SDL_Renderer *rend, CommonData *data){
 
   SDL_RenderPresent(rend);
 }
+
+
+/* Debug only */
+void fill_icosahedron(Vec3 *vert, Polygon *poly){
+  f32 longer = 0.5f + SDL_sqrtf(5) / 2.f, shorter = 1.f;
+  Vec3 rect[4] = {
+    vec3_new( shorter, longer, 0),
+    vec3_new(-shorter, longer, 0),
+    vec3_new(-shorter, -longer, 0),
+    vec3_new( shorter, -longer, 0)
+  };
+  Quaternion rotation;
+  rotation = quat_new(SDL_PI_F / 2, vec3_new(1, 0, 0));
+  vert[ 0] = vec3_rotate(rect[0], rotation);
+  vert[ 1] = vec3_rotate(rect[1], rotation);
+  vert[ 2] = vec3_rotate(rect[2], rotation);
+  vert[ 3] = vec3_rotate(rect[3], rotation);
+  rotation = quat_new(SDL_PI_F / 2, vec3_new(0, 1, 0));
+  vert[ 4] = vec3_rotate(rect[0], rotation);
+  vert[ 5] = vec3_rotate(rect[1], rotation);
+  vert[ 6] = vec3_rotate(rect[2], rotation);
+  vert[ 7] = vec3_rotate(rect[3], rotation);
+  rotation = quat_new(SDL_PI_F / 2, vec3_new(0, 0, 1));
+  vert[ 8] = vec3_rotate(rect[0], rotation);
+  vert[ 9] = vec3_rotate(rect[1], rotation);
+  vert[10] = vec3_rotate(rect[2], rotation);
+  vert[11] = vec3_rotate(rect[3], rotation);
+
+  SDL_memset(poly, 0, sizeof * poly * 20);
+
+  poly[ 0] = polygon_new(0, 1, 6, 0);
+  poly[ 1] = polygon_new(1, 0, 5, 0);
+  poly[ 2] = polygon_new(2, 3, 7, 0);
+  poly[ 3] = polygon_new(3, 2, 4, 0);
+  poly[ 4] = polygon_new(4, 5, 11, 0);
+  poly[ 5] = polygon_new(5, 4, 8, 0);
+  poly[ 6] = polygon_new(6, 7, 10, 0);
+  poly[ 7] = polygon_new(7, 6, 9, 0);
+  poly[ 8] = polygon_new(8, 9, 1, 0);
+  poly[ 9] = polygon_new(9, 8, 2, 0);
+  poly[10] = polygon_new(10, 11, 0, 0);
+  poly[11] = polygon_new(11, 10, 3, 0);
+  poly[12] = polygon_new(5, 0, 11, 0);
+  poly[13] = polygon_new(0, 6, 10, 0);
+  poly[14] = polygon_new(6, 1, 9, 0);
+  poly[15] = polygon_new(1, 5, 8, 0);
+  poly[16] = polygon_new(4, 2, 8, 0);
+  poly[17] = polygon_new(2, 7, 9, 0);
+  poly[18] = polygon_new(3, 4, 11, 0);
+  poly[19] = polygon_new(7, 3, 10, 0);
+}
+/* ---------- */
 
 int main(){
   SDL_Window *win;
@@ -255,6 +314,14 @@ int main(){
 
   Model plane_model = model(plane_vert, arrLen(plane_vert), plane_poly, arrLen(plane_poly));
 
+  Vec3 ico_vert[12];
+
+  Polygon ico_poly[20];
+
+  fill_icosahedron(ico_vert, ico_poly);
+
+  Model ico_model = model(ico_vert, 12, ico_poly, 20);
+
   Object objs[] = {
     object_new(&models[0], colors + 7, vec3_new(-20, 5 - 100, 19.8), 100),
     object_new(&models[1], colors + 7, vec3_new(-20, 5 - 100, 19.8), 90),
@@ -262,11 +329,14 @@ int main(){
     object_new(&backdropModel, colors + 7, vec3_new(-20, 5 - 100, 19.8), 5),
     object_new(&backdropModel, colors + 3, vec3_new(-20, 5 - 100, 19.9), 120),
     object_new(&thick_model, colors + 2, vec3_new(-20, 5 - 100, 20), 130),
-    object_new(&zeCube_model, colors, vec3_expand(0), 5),
+    object_new(&ico_model, colors, vec3_expand(0), 5),
     object_new(&zeCube_model, colors + 4, vec3_new(0, 0, -200), 10),
     object_new(&zeInv_model, colors + 7, vec3_new(0, 0, -200), 11),
-    object_new(&plane_model, colors + 2, vec3_new(0, 15, 0), 1000)
+    object_new(&plane_model, colors + 2, vec3_new(0, 15, 0), 1000),
+    object_new(&zeCube_model, colors + 6, vec3_new(0, 75, 0), 200)
   };
+
+  objs[10].rot = quat_new(SDL_PI_F / 3, vec3_new(1, 0, 0));
 
   const u32 objLen = arrLen(objs);
 
@@ -284,10 +354,12 @@ int main(){
   time = quat_new(dateTime.hour * M_PI / 6.f, vec3_new(0, 0, 1));
   object_rotate(objs + 2, time);
 
-  Collider_Packed active[1] = {{ .sphere = collider_newSphere(objs + 6, vec3_new(0, 0, 0), objs[6].scale) }};
-  Collider_Packed passive[2] = {
+  Collider_Packed active[1] = {{ .sphere = collider_newSphere(objs + 6, vec3_new(0, 0, 0), objs[6].scale * (1.f + SDL_sqrtf(5.f)) / 2.f) }};
+  Collider_Packed passive[] = {
     {.box = collider_newBox(objs + 7, vec3_expand(0), vec3_expand(objs[7].scale))},
-    {.box = collider_newBox(objs + 9, vec3_expand(0), vec3_new(objs[9].scale, 0, objs[9].scale))}
+    {.box = collider_newBox(objs + 9, vec3_expand(0), vec3_new(objs[9].scale, 0, objs[9].scale))},
+    {.box = collider_newBox(objs + 5, vec3_new(0, 0, 7), vec3_new(130, 130, 7))},
+    {.box = collider_newBox(objs + 10, vec3_expand(0), vec3_expand(objs[10].scale))}
   };
 
   CommonData data = {

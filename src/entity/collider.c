@@ -213,7 +213,7 @@ bool collider_sphere_box(Collider_Sphere *sphere, Collider_Box *box, CollisionIn
   if(info){
     info->source = (Collider*)sphere;
     info->dest = (Collider*)box;
-    info->normal = vec3_rotate(vec3_normal(diff),box->base.anchor->rot);
+    info->normal = vec3_rotate(vec3_normal(diff), box->base.anchor->rot);
     info->penetration = dist - sphere->radius;
   }
 
