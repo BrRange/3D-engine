@@ -24,11 +24,10 @@ typedef struct CommonData{
 } CommonData;
 
 void tick(SDL_Renderer *rend, CommonData *data){
-  static bool ableJump = false;
   static Vec3 pSpeed;
   f32 dt = *data->deltaT / 1000.f;
 
-  f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? dt * 220.f : dt * 60.f;
+  f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? dt * 360.f : dt * 120.f;
 
   Object *player = data->objs + 6;
 
@@ -68,7 +67,7 @@ void tick(SDL_Renderer *rend, CommonData *data){
 
   CollisionInfo cinfo;
   Vec3 jumpNormal;
-  ableJump = false;
+  bool ableJump = false;
   
   for(usz i = 0; i < data->passiveCollLen; ++i){
     Collider *act = &data->activeColl->collider, *pass = &(data->passiveColl + i)->collider;
@@ -78,17 +77,17 @@ void tick(SDL_Renderer *rend, CommonData *data){
         ableJump = true;
       }
       f32 invert = cinfo.source == act ? 1 : -1;
-      pSpeed = vec3_sub(pSpeed, vec3_mul(cinfo.normal, vec3_mag(pSpeed)));
       cinfo.normal = vec3_mul(cinfo.normal, invert);
+      pSpeed = vec3_sub(pSpeed, vec3_mul(cinfo.normal, vec3_mag(pSpeed)));
       player->pos = vec3_add(player->pos, vec3_mul(cinfo.normal, cinfo.penetration));
     }
   }
 
+  pSpeed.y += 10;
   if(keyboardH_has(data->keyboardH, SDLK_SPACE) && ableJump){
     pSpeed = vec3_add(pSpeed, vec3_mul(jumpNormal, -240));
   }
 
-  pSpeed.y += 280 * dt;
   pSpeed = vec3_mul(pSpeed, 1 - 0.999 * dt);
 }
 
@@ -333,7 +332,11 @@ int main(){
     object_new(&zeCube_model, colors + 4, vec3_new(0, 0, -200), 10),
     object_new(&zeInv_model, colors + 7, vec3_new(0, 0, -200), 11),
     object_new(&plane_model, colors + 2, vec3_new(0, 15, 0), 1000),
-    object_new(&zeCube_model, colors + 6, vec3_new(0, 75, 0), 200)
+    object_new(&zeCube_model, colors + 6, vec3_new(400, 75, 0), 200),
+    object_new(&ico_model, colors + 7, vec3_new(-400, 5, 0), 10),
+    object_new(&ico_model, colors + 3, vec3_new(-425, 5, 0), 10),
+    object_new(&ico_model, colors + 3, vec3_new(-400, 5, 25), 10),
+    object_new(&ico_model, colors + 7, vec3_new(-425, 5, 25), 10),
   };
 
   objs[10].rot = quat_new(SDL_PI_F / 3, vec3_new(1, 0, 0));
@@ -359,7 +362,11 @@ int main(){
     {.box = collider_newBox(objs + 7, vec3_expand(0), vec3_expand(objs[7].scale))},
     {.box = collider_newBox(objs + 9, vec3_expand(0), vec3_new(objs[9].scale, 0, objs[9].scale))},
     {.box = collider_newBox(objs + 5, vec3_new(0, 0, 7), vec3_new(130, 130, 7))},
-    {.box = collider_newBox(objs + 10, vec3_expand(0), vec3_expand(objs[10].scale))}
+    {.box = collider_newBox(objs + 10, vec3_expand(0), vec3_expand(objs[10].scale))},
+    {.sphere = collider_newSphere(objs + 11, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
+    {.sphere = collider_newSphere(objs + 12, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
+    {.sphere = collider_newSphere(objs + 13, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
+    {.sphere = collider_newSphere(objs + 14, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))}
   };
 
   CommonData data = {

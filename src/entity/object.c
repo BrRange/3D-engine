@@ -87,32 +87,50 @@ void object_render(Object *obj, Canvas *canv, Camera *cam, LightSource_Packed *s
     Color color = obj->palette[polygon.colorIndex];
     color.asVec3 = vec3_piecewise(color.asVec3, lightPower);
 
-    for(u8 j = 0; j < 3; ++j)
-    if(proj[j].z <= cam->nearPlane) clipped[clipCount++] = proj[j];
-    else unclipped[unclipCount++] = proj[j];
+    i32 lastClipped, lastUnclipped;
+
+    for(i32 j = 0; j < 3; ++j)
+    if(proj[j].z <= cam->nearPlane){
+      clipped[clipCount++] = proj[j];
+      lastClipped = j;
+    } else{
+      unclipped[unclipCount++] = proj[j];
+      lastUnclipped = j;
+    }
 
     bool extraVec3 = false;
     switch(clipCount){
-    case 0:
+    case 0:{
       for(u8 j = 0; j < 3; ++j)
-        proj[j].x /= proj[j].z, proj[j].y /= proj[j].z;
-    break;
-    case 1:
+      proj[j].x /= proj[j].z, proj[j].y /= proj[j].z;
+    } break;
+    case 1:{
       extraVec3 = true;
-      proj[0] = unclipped[0];
-      proj[1] = unclipped[1];
-      proj[2] = vec3_getClip(clipped[0], unclipped[1], cam->nearPlane);
-      proj[3] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
-      for(u8 j = 0; j < 2; ++j)
-        proj[j].x /= proj[j].z, proj[j].y /= proj[j].z;
-    break;
+      if(lastClipped == 1){
+        proj[0] = unclipped[1];
+        proj[1] = unclipped[0];
+        proj[2] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
+        proj[3] = vec3_getClip(clipped[0], unclipped[1], cam->nearPlane);
+      } else{
+        proj[0] = unclipped[0];
+        proj[1] = unclipped[1];
+        proj[2] = vec3_getClip(clipped[0], unclipped[1], cam->nearPlane);
+        proj[3] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
+      }
+      proj[0].x /= proj[0].z, proj[0].y /= proj[0].z;
+      proj[1].x /= proj[1].z, proj[1].y /= proj[1].z;
+    } break;
     case 2:{
       proj[0] = unclipped[0];
-      proj[1] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
-      proj[2] = vec3_getClip(clipped[1], unclipped[0], cam->nearPlane);
+      if(lastUnclipped == 1){
+        proj[1] = vec3_getClip(clipped[1], unclipped[0], cam->nearPlane);
+        proj[2] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
+      } else{
+        proj[1] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
+        proj[2] = vec3_getClip(clipped[1], unclipped[0], cam->nearPlane);
+      }
       proj[0].x /= proj[0].z, proj[0].y /= proj[0].z;
-    }
-    break;
+    } break;
     default:
       continue;
     }

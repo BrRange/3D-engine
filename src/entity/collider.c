@@ -123,7 +123,7 @@ bool collider_sphere_sphere(Collider_Sphere *a, Collider_Sphere *b, CollisionInf
   f32 sqrDist = vec3_dot(diff, diff);
 
   if(info){
-    info->source = (Collider*)b;
+    info->source = (Collider*)a;
     info->dest = (Collider*)b;
     info->normal = vec3_normal(diff);
     info->penetration = SDL_sqrtf(sqrDist) - radius;
