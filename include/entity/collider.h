@@ -11,10 +11,19 @@ typedef enum ColliderType{
   ColliderType_Box
 } ColliderType;
 
+typedef enum CollisionType{
+  CollisionType_Phase, // ignore
+  CollisionType_Slide, // logic in main, multiply by coef to add drag
+  CollisionType_Bounce, // add normal with movement mag times coef
+  CollisionType_Sink // same as bounce but not correcting the position
+} CollisionType;
+
 typedef struct Collider{
   Object *anchor;
-  ColliderType type;
   Vec3 offset;
+  ColliderType type;
+  CollisionType collision;
+  f32 coef;
 } Collider;
 
 typedef struct CollisionInfo{
@@ -22,6 +31,10 @@ typedef struct CollisionInfo{
   Vec3 normal;
   f32 penetration;
 } CollisionInfo;
+
+void collider_setResponse(Collider *coll, CollisionType type, f32 coef);
+
+Vec3 collider_getResponse(Collider *act, Collider *pass, CollisionInfo *info);
 
 typedef struct Collider_Sphere{
   Collider base;

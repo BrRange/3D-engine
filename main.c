@@ -27,7 +27,7 @@ void tick(SDL_Renderer *rend, CommonData *data){
   static Vec3 pSpeed;
   f32 dt = *data->deltaT / 1000.f;
 
-  f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? dt * 360.f : dt * 120.f;
+  f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? 36.f : 12.f;
 
   Object *player = data->objs + 6;
 
@@ -49,14 +49,6 @@ void tick(SDL_Renderer *rend, CommonData *data){
 
   player->pos = vec3_add(player->pos, vec3_mul(pSpeed, dt));
 
-  rotated = vec3_new(cameraView.x, 0, cameraView.z);
-  rotated = vec3_normal(rotated);
-  if(keyboardH_has(data->keyboardH, SDLK_W)) pSpeed = vec3_add(pSpeed, vec3_mul(rotated, acc));
-  if(keyboardH_has(data->keyboardH, SDLK_S)) pSpeed = vec3_sub(pSpeed, vec3_mul(rotated, acc));
-  rotated = vec3_new(-cameraView.z, 0, cameraView.x);
-  rotated = vec3_normal(rotated);
-  if(keyboardH_has(data->keyboardH, SDLK_A)) pSpeed = vec3_add(pSpeed, vec3_mul(rotated, acc));
-  if(keyboardH_has(data->keyboardH, SDLK_D)) pSpeed = vec3_sub(pSpeed, vec3_mul(rotated, acc));
   //if(keyboardH_has(data->keyboardH, SDLK_SPACE)) object_move(player, vec3_new(0, -acc, 0));
   //if(keyboardH_has(data->keyboardH, SDLK_LCTRL)) object_move(player, vec3_new(0, acc, 0));
 
@@ -78,15 +70,30 @@ void tick(SDL_Renderer *rend, CommonData *data){
       }
       f32 invert = cinfo.source == act ? 1 : -1;
       cinfo.normal = vec3_mul(cinfo.normal, invert);
-      pSpeed = vec3_sub(pSpeed, vec3_mul(cinfo.normal, vec3_mag(pSpeed)));
+      Vec3 hover = vec3_mul(cinfo.normal, ((Collider_Sphere*)cinfo.source)->radius - cinfo.penetration);
+      f32 dragHover = vec3_dot(hover, cinfo.normal), dragSpeed = vec3_dot(pSpeed, cinfo.normal);
+      pSpeed = vec3_add(pSpeed, hover);
+      pSpeed = vec3_sub(pSpeed, vec3_mul(cinfo.normal, dragHover + dragSpeed));
+      pSpeed = vec3_mul(pSpeed, 1);
       player->pos = vec3_add(player->pos, vec3_mul(cinfo.normal, cinfo.penetration));
     }
   }
 
   pSpeed.y += 10;
-  if(keyboardH_has(data->keyboardH, SDLK_SPACE) && ableJump){
-    pSpeed = vec3_add(pSpeed, vec3_mul(jumpNormal, -240));
+  if(ableJump){
+    if(keyboardH_has(data->keyboardH, SDLK_SPACE)) pSpeed = vec3_add(pSpeed, vec3_mul(jumpNormal, -240));
+  } else{
+    acc /= 5;
   }
+    cameraView = camera_viewVec3(data->cam);
+    rotated = vec3_new(cameraView.x, 0, cameraView.z);
+    rotated = vec3_normal(rotated);
+    if(keyboardH_has(data->keyboardH, SDLK_W)) pSpeed = vec3_add(pSpeed, vec3_mul(rotated, acc));
+    if(keyboardH_has(data->keyboardH, SDLK_S)) pSpeed = vec3_sub(pSpeed, vec3_mul(rotated, acc));
+    rotated = vec3_new(-cameraView.z, 0, cameraView.x);
+    rotated = vec3_normal(rotated);
+    if(keyboardH_has(data->keyboardH, SDLK_A)) pSpeed = vec3_add(pSpeed, vec3_mul(rotated, acc));
+    if(keyboardH_has(data->keyboardH, SDLK_D)) pSpeed = vec3_sub(pSpeed, vec3_mul(rotated, acc));
 
   pSpeed = vec3_mul(pSpeed, 1 - 0.999 * dt);
 }
@@ -321,6 +328,8 @@ int main(){
 
   Model ico_model = model(ico_vert, 12, ico_poly, 20);
 
+  Color honeyC = color_new(1, 0.7647059f, 0.043137256f);
+
   Object objs[] = {
     object_new(&models[0], colors + 7, vec3_new(-20, 5 - 100, 19.8), 100),
     object_new(&models[1], colors + 7, vec3_new(-20, 5 - 100, 19.8), 90),
@@ -332,7 +341,7 @@ int main(){
     object_new(&zeCube_model, colors + 4, vec3_new(0, 0, -200), 10),
     object_new(&zeInv_model, colors + 7, vec3_new(0, 0, -200), 11),
     object_new(&plane_model, colors + 2, vec3_new(0, 15, 0), 1000),
-    object_new(&zeCube_model, colors + 6, vec3_new(400, 75, 0), 200),
+    object_new(&zeCube_model, &honeyC, vec3_new(400, 75, 0), 200),
     object_new(&ico_model, colors + 7, vec3_new(-400, 5, 0), 10),
     object_new(&ico_model, colors + 3, vec3_new(-425, 5, 0), 10),
     object_new(&ico_model, colors + 3, vec3_new(-400, 5, 25), 10),
