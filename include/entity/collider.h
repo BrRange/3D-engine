@@ -29,12 +29,16 @@ typedef struct Collider{
 typedef struct CollisionInfo{
   Collider *source, *dest;
   Vec3 normal;
-  f32 penetration;
+  f32 penetration, distance, coef;
+  CollisionType type;
+  bool snap;
 } CollisionInfo;
 
 void collider_setResponse(Collider *coll, CollisionType type, f32 coef);
 
-Vec3 collider_getResponse(Collider *act, Collider *pass, CollisionInfo *info);
+Vec3 collision_getResponse(CollisionInfo *info, Vec3 displacement, f32 dt);
+
+void collision_defineType(CollisionInfo *info, Collider *a, Collider *b);
 
 typedef struct Collider_Sphere{
   Collider base;

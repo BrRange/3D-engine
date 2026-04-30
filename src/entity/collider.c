@@ -3,6 +3,55 @@
 #include <SDL3/SDL_assert.h>
 #define UNIMPLEMENTED false
 
+void collider_setResponse(Collider *coll, CollisionType type, f32 coef){
+  coll->collision = type;
+  coll->coef = coef;
+}
+
+Vec3 collision_getResponse(CollisionInfo *info, Vec3 displacement, f32 dt){
+  switch(info->type){
+    case CollisionType_Phase:{} break;
+    case CollisionType_Slide:{
+      Vec3 hover = vec3_mul(info->normal, info->distance), norm = info->normal;
+      f32 dragHover = vec3_dot(hover, norm), dragSpeed = vec3_dot(displacement, norm);
+      displacement = vec3_add(displacement, hover);
+      displacement = vec3_sub(displacement, vec3_mul(norm, dragHover + dragSpeed));
+      displacement = vec3_mul(displacement, SDL_max(0.f, 1.f - info->coef * dt));
+    } break;
+    case CollisionType_Bounce:{
+      f32 mag = vec3_mag(displacement);
+      Vec3 scaled = vec3_mul(info->normal, mag * info->coef);
+      displacement = vec3_sub(displacement, scaled);
+    } break;
+    case CollisionType_Sink:{
+      f32 mag = vec3_mag(displacement);
+      Vec3 scaled = vec3_mul(info->normal, mag * info->coef * dt);
+      displacement = vec3_sub(displacement, scaled);
+    } break;
+  }
+  return displacement;
+}
+
+void collision_defineType(CollisionInfo *info, Collider *a, Collider *b){
+  if(!(a->collision && b->collision)){
+    info->type = ColliderType_Intangible;
+    info->coef = 0.f;
+    return;
+  }
+  if(a->collision == b->collision){
+    info->type = a->collision;
+    info->coef = a->coef * b->coef;
+    return;
+  }
+  if(a->collision > b->collision){
+    info->type = a->collision;
+    info->coef = a->coef;
+  } else{
+    info->type = b->collision;
+    info->coef = b->coef;
+  }
+}
+
 Collider_Sphere collider_newSphere(Object *anchor, Vec3 offset, f32 radius){
   Collider_Sphere sphere = {
     .base = {
@@ -54,8 +103,13 @@ Collider_Box collider_newBox(Object *anchor, Vec3 offset, Vec3 extension){
 }
 
 bool collider_collide(Collider *a, Collider *b, CollisionInfo *info){
-  *info = (CollisionInfo){0};
   if(a->type == ColliderType_Intangible || b->type == ColliderType_Intangible) return false;
+  if(info){
+    *info = (CollisionInfo){0};
+    collision_defineType(info, a, b);
+    if(info->type == CollisionType_Slide || info->type == CollisionType_Bounce)
+    info->snap = true;
+  }
 
   switch(a->type){
     case ColliderType_Sphere:
@@ -126,7 +180,8 @@ bool collider_sphere_sphere(Collider_Sphere *a, Collider_Sphere *b, CollisionInf
     info->source = (Collider*)a;
     info->dest = (Collider*)b;
     info->normal = vec3_normal(diff);
-    info->penetration = SDL_sqrtf(sqrDist) - radius;
+    info->distance = SDL_sqrtf(sqrDist);
+    info->penetration = info->distance - radius;
   }
 
   return sqrDist <= radius * radius;
@@ -159,7 +214,8 @@ bool collider_sphere_pill(Collider_Sphere *sphere, Collider_Pill *pill, Collisio
     info->source = (Collider*)sphere;
     info->dest = (Collider*)pill;
     info->normal = vec3_normal(proj);
-    info->penetration = SDL_sqrtf(sqrDist) - radius;
+    info->distance = SDL_sqrtf(sqrDist);
+    info->penetration = info->distance - radius;
   }
 
   return vec3_dot(proj, proj) <= radius * radius;
@@ -181,7 +237,8 @@ bool collider_sphere_beam(Collider_Sphere *sphere, Collider_Beam *beam, Collisio
     info->source = (Collider*)sphere;
     info->dest = (Collider*)beam;
     info->normal = beamPos;
-    info->penetration = SDL_sqrtf(linearDist) - radius;
+    info->distance = SDL_sqrtf(linearDist);
+    info->penetration = info->distance - radius;
   }
 
   radius *= radius;
@@ -214,6 +271,7 @@ bool collider_sphere_box(Collider_Sphere *sphere, Collider_Box *box, CollisionIn
     info->source = (Collider*)sphere;
     info->dest = (Collider*)box;
     info->normal = vec3_rotate(vec3_normal(diff), box->base.anchor->rot);
+    info->distance = dist;
     info->penetration = dist - sphere->radius;
   }
 

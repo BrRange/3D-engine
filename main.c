@@ -27,7 +27,7 @@ void tick(SDL_Renderer *rend, CommonData *data){
   static Vec3 pSpeed;
   f32 dt = *data->deltaT / 1000.f;
 
-  f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? 36.f : 12.f;
+  f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? 20.f : 8.f;
 
   Object *player = data->objs + 6;
 
@@ -64,18 +64,20 @@ void tick(SDL_Renderer *rend, CommonData *data){
   for(usz i = 0; i < data->passiveCollLen; ++i){
     Collider *act = &data->activeColl->collider, *pass = &(data->passiveColl + i)->collider;
     if(collider_collide(act, pass, &cinfo)){
-      if(cinfo.normal.y > 0.7f){
-        jumpNormal = cinfo.normal;
-        ableJump = true;
-      }
       f32 invert = cinfo.source == act ? 1 : -1;
       cinfo.normal = vec3_mul(cinfo.normal, invert);
-      Vec3 hover = vec3_mul(cinfo.normal, ((Collider_Sphere*)cinfo.source)->radius - cinfo.penetration);
-      f32 dragHover = vec3_dot(hover, cinfo.normal), dragSpeed = vec3_dot(pSpeed, cinfo.normal);
-      pSpeed = vec3_add(pSpeed, hover);
-      pSpeed = vec3_sub(pSpeed, vec3_mul(cinfo.normal, dragHover + dragSpeed));
-      pSpeed = vec3_mul(pSpeed, 1);
-      player->pos = vec3_add(player->pos, vec3_mul(cinfo.normal, cinfo.penetration));
+      if(cinfo.type == CollisionType_Sink){
+        jumpNormal = vec3_add(jumpNormal, vec3_new(0, 1, 0));
+        jumpNormal = vec3_normal(jumpNormal);
+        ableJump = true;
+      }
+      else if(cinfo.normal.y > 0.7f){
+        jumpNormal = vec3_add(jumpNormal, cinfo.normal);
+        jumpNormal = vec3_normal(jumpNormal);
+        ableJump = true;
+      }
+      if(cinfo.snap) player->pos = vec3_add(player->pos, vec3_mul(cinfo.normal, cinfo.penetration));
+      pSpeed = collision_getResponse(&cinfo, pSpeed, dt);
     }
   }
 
@@ -377,6 +379,16 @@ int main(){
     {.sphere = collider_newSphere(objs + 13, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
     {.sphere = collider_newSphere(objs + 14, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))}
   };
+
+  collider_setResponse(&active[0].collider, CollisionType_Slide, 1.f);
+  collider_setResponse(&passive[0].collider, CollisionType_Bounce, 2.f);
+  collider_setResponse(&passive[1].collider, CollisionType_Slide, 1.f);
+  collider_setResponse(&passive[2].collider, CollisionType_Slide, 1000.f);
+  collider_setResponse(&passive[3].collider, CollisionType_Slide, -5.f);
+  collider_setResponse(&passive[4].collider, CollisionType_Sink, 3.f);
+  collider_setResponse(&passive[5].collider, CollisionType_Sink, 3.f);
+  collider_setResponse(&passive[6].collider, CollisionType_Sink, 3.f);
+  collider_setResponse(&passive[7].collider, CollisionType_Sink, 3.f);
 
   CommonData data = {
     .deltaT = &dtime,
