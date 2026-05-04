@@ -69,6 +69,12 @@ Vec3 vec3_expand(float f){
   return vec3_new(f, f, f);
 }
 
+Vec3 vec3_lerp(Vec3 src, Vec3 dest, f32 scale){
+  src = vec3_mul(src, 1.f - scale);
+  dest = vec3_mul(dest, scale);
+  return vec3_add(src, dest);
+}
+
 Vec2 vec2_new(f32 x, f32 y){
   Vec2 v = {.x = x, .y = y};
   return v;

@@ -66,9 +66,18 @@ void shader_pixel(Canvas *canv, Vec3 *vertex, Color color){
       
       if(thisZ >= canv->zBuffer[idx]) goto skip;
 
-      PixelColor pcolor = pixelColor_new(255 * color.r, 255 * color.g, 255 * color.b, 255);
-      canv->pixel[idx] = pcolor;
-      canv->zBuffer[idx] = thisZ;
+      if(color.a != 1.f){
+        Vec3 originColor = vec3_new(canv->pixel[idx].r / 255.f, canv->pixel[idx].g / 255.f, canv->pixel[idx].b / 255.f);
+        f32 originAlpha = canv->pixel[idx].a / 255.f;
+        color.asVec3 = vec3_lerp(originColor, color.asVec3, color.a);
+        PixelColor pcolor = pixelColor_new(255 * color.r, 255 * color.g, 255 * color.b, SDL_max(color.a, originAlpha));
+        canv->pixel[idx] = pcolor;
+      } else{
+        PixelColor pcolor = pixelColor_new(255 * color.r, 255 * color.g, 255 * color.b, 255);
+        canv->pixel[idx] = pcolor;
+        canv->zBuffer[idx] = thisZ;
+      }
+
 
       skip:
       AB += xdiff.x;
