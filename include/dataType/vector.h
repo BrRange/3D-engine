@@ -35,8 +35,6 @@ Vec3 vec3_piecewise(Vec3 a, Vec3 b);
 
 Vec3 vec3_expand(float f);
 
-Vec3 vec3_lerp(Vec3 src, Vec3 dest, f32 scale);
-
 typedef struct Vec2{
   f32 x, y;
 } Vec2;

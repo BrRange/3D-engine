@@ -6,9 +6,9 @@
 #include "entity/camera.h"
 
 typedef union Color{
-  f32 color[4];
+  f32 color[3];
   struct{
-    f32 r, g, b, a;
+    f32 r, g, b;
   };
   Vec3 asVec3;
 } Color;

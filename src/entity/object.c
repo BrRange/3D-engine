@@ -44,13 +44,10 @@ const Vec3 vec3_id = {1, 1, 1};
 void object_render(Object *obj, Canvas *canv, Camera *cam, LightSource_Packed *sources){
   Vec3 *vert = obj->model->vec3, clipped[3], unclipped[3];
   u8 clipCount, unclipCount;
-  
+
   for(size_t i = 0; i < obj->model->polyCount; ++i){
     clipCount = unclipCount = 0;
     Polygon polygon = obj->model->polygon[i];
-    Color color = obj->palette[polygon.colorIndex];
-
-    if(color.a == 0.f) continue;
 
     Vec3 vertex[3] = {polygon.idx[0][vert], polygon.idx[1][vert], polygon.idx[2][vert]};
 
@@ -87,6 +84,7 @@ void object_render(Object *obj, Canvas *canv, Camera *cam, LightSource_Packed *s
     proj[1].x *= cam->fieldView * aspecRatio * 500.f, proj[1].y *= cam->fieldView / aspecRatio * 500.f;
     proj[2].x *= cam->fieldView * aspecRatio * 500.f, proj[2].y *= cam->fieldView / aspecRatio * 500.f;
 
+    Color color = obj->palette[polygon.colorIndex];
     color.asVec3 = vec3_piecewise(color.asVec3, lightPower);
 
     i32 lastClipped, lastUnclipped;

@@ -58,7 +58,7 @@ void tick(SDL_Renderer *rend, CommonData *data){
   camera_moveAbs(data->cam, vec3_div(cameraView, 4));
 
   CollisionInfo cinfo;
-  Vec3 jumpNormal;
+  Vec3 jumpNormal = {0};
   bool ableJump = false;
   
   for(usz i = 0; i < data->passiveCollLen; ++i){
