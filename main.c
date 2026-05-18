@@ -66,12 +66,7 @@ void tick(SDL_Renderer *rend, CommonData *data){
     if(collider_collide(act, pass, &cinfo)){
       f32 invert = cinfo.source == act ? 1 : -1;
       cinfo.normal = vec3_mul(cinfo.normal, invert);
-      if(cinfo.type == CollisionType_Sink){
-        jumpNormal = vec3_add(jumpNormal, vec3_new(0, 1, 0));
-        jumpNormal = vec3_normal(jumpNormal);
-        ableJump = true;
-      }
-      else if(cinfo.normal.y > 0.7f){
+      if(cinfo.normal.y > 0.7f){
         jumpNormal = vec3_add(jumpNormal, cinfo.normal);
         jumpNormal = vec3_normal(jumpNormal);
         ableJump = true;

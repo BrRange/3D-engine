@@ -39,7 +39,8 @@ void shader_pixel(Canvas *canv, Vec3 *vertex, Color color){
 
   const Vec3
   xdiff = vec3_new(b.y - a.y, c.y - b.y, a.y - c.y),
-  ydiff = vec3_new(b.x - a.x, c.x - b.x, a.x - c.x);
+  ydiff = vec3_new(b.x - a.x, c.x - b.x, a.x - c.x),
+  depth = vec3_new(1.f / vertex[0].z, 1.f / vertex[1].z, 1.f / vertex[2].z);
 
   f32 iAB = (b.x * a.y - a.x * b.y) + xdiff.x * bounds[0] - ydiff.x * bounds[2];
   f32 iBC = (c.x * b.y - b.x * c.y) + xdiff.y * bounds[0] - ydiff.y * bounds[2];
@@ -58,9 +59,7 @@ void shader_pixel(Canvas *canv, Vec3 *vertex, Color color){
       if(BC < 0.f) goto skip;
       if(CA < 0.f) goto skip;
       
-      Vec3
-      weight = vec3_new(BC * bary, CA * bary, AB * bary),
-      depth = vec3_new(1.f / vertex[0].z, 1.f / vertex[1].z, 1.f / vertex[2].z);
+      Vec3 weight = vec3_new(BC * bary, CA * bary, AB * bary);
       
       f32 thisZ = 1.f / vec3_dot(weight, depth);
       

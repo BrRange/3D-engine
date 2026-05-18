@@ -28,6 +28,35 @@ Quaternion quat_conjugate(Quaternion quat){
   return quat;
 }
 
+Quaternion quat_add(Quaternion a, Quaternion b){
+  a.r += b.r;
+  a.x += b.x;
+  a.y += b.y;
+  a.z += b.z;
+  return a;
+}
+
+Quaternion quat_mul(Quaternion quat, f32 scale){
+  quat.r *= scale;
+  quat.x *= scale;
+  quat.y *= scale;
+  quat.z *= scale;
+  return quat;
+}
+
+f32 quat_dot(Quaternion a, Quaternion b){
+  return a.r * b.r + a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+Quaternion quat_slerp(Quaternion src, Quaternion dest, f32 t){
+  f32 coef = quat_dot(src, dest);
+  coef = 1.f - coef * coef;
+  t = (t - t * t * t) / coef;
+  src = quat_mul(src, 1.f - t);
+  dest = quat_mul(dest, t);
+  return quat_add(src, dest);
+}
+
 Quaternion vec3_quat(Vec3 point){
   return (Quaternion){0.f, point.x, point.y, point.z};
 }
