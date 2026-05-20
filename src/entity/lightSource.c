@@ -1,7 +1,7 @@
 #include "entity/lightSource.h"
 #include <SDL3/SDL_stdinc.h>
 
-LightSource_Diffuse lightSource_newDiffuse(Vec3 intensity, Vec3 dir){
+LightSource_Diffuse lightSource_newDiffuse(const Vec3 intensity, const Vec3 dir){
   LightSource_Diffuse diffuse = {
     .base.type = LightSourceType_Diffuse,
     .base.intensity = intensity,

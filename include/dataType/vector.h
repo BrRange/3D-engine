@@ -4,34 +4,32 @@
 #include "dataType/rustydef.h"
 
 typedef struct Vec3{
-  f32 x, y, z;
+  f32 x, y, z, w;
 } Vec3;
 
 Vec3 vec3_new(f32 x, f32 y, f32 z);
 
-Vec3 vec3_getClip(Vec3 clip, Vec3 unclip, f32 z);
-
-int vec3_projectionCompare(Vec3 *a, Vec3 *b);
+Vec3 vec3_getClip(const Vec3 clip, const Vec3 unclip, f32 z);
 
 /* Vec3 operators */
 
-Vec3 vec3_add(Vec3 a, Vec3 b);
+Vec3 vec3_add(const Vec3 a, const Vec3 b);
 
-Vec3 vec3_sub(Vec3 a, Vec3 b);
+Vec3 vec3_sub(const Vec3 a, const Vec3 b);
 
-Vec3 vec3_mul(Vec3 v, f32 scalar);
+Vec3 vec3_mul(const Vec3 v, f32 scalar);
 
-Vec3 vec3_div(Vec3 v, f32 scalar);
+Vec3 vec3_div(const Vec3 v, f32 scalar);
 
-f32 vec3_dot(Vec3 a, Vec3 b);
+f32 vec3_dot(const Vec3 a, const Vec3 b);
 
-Vec3 vec3_cross(Vec3 a, Vec3 b);
+Vec3 vec3_cross(const Vec3 a, const Vec3 b);
 
-f32 vec3_mag(Vec3 v);
+f32 vec3_mag(const Vec3 v);
 
-Vec3 vec3_normal(Vec3 v);
+Vec3 vec3_normal(const Vec3 v);
 
-Vec3 vec3_piecewise(Vec3 a, Vec3 b);
+Vec3 vec3_piecewise(const Vec3 a, const Vec3 b);
 
 Vec3 vec3_expand(float f);
 

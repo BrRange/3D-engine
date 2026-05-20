@@ -2,16 +2,7 @@
 #include <SDL3/SDL_stdinc.h>
 #include "dataType/vector.h"
 
-Vec3 vec3_new(f32 x, f32 y, f32 z){
-  Vec3 v = {
-    .x = x,
-    .y = y,
-    .z = z
-  };
-  return v;
-}
-
-Vec3 vec3_getClip(Vec3 clip, Vec3 unclip, f32 z){
+Vec3 vec3_getClip(const Vec3 clip, const Vec3 unclip, f32 z){
   Vec3 v = {.z = z};
   f32
     dx = unclip.x - clip.x,
@@ -23,50 +14,8 @@ Vec3 vec3_getClip(Vec3 clip, Vec3 unclip, f32 z){
   return v;
 }
 
-int vec3_projectionCompare(Vec3 *vert1, Vec3 *vert2){
-  return vert2->z - vert1->z;
-}
-
-Vec3 vec3_add(Vec3 a, Vec3 b){
-  return vec3_new(a.x + b.x, a.y + b.y, a.z + b.z);
-}
-
-Vec3 vec3_sub(Vec3 a, Vec3 b){
-  return vec3_new(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
-Vec3 vec3_mul(Vec3 a, f32 scalar){
-  return vec3_new(a.x * scalar, a.y * scalar, a.z * scalar);
-}
-
-Vec3 vec3_div(Vec3 a, f32 scalar){
-  return vec3_new(a.x / scalar, a.y / scalar, a.z / scalar);
-}
-
-f32 vec3_dot(Vec3 a, Vec3 b){
-  return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-Vec3 vec3_cross(Vec3 a, Vec3 b){
+Vec3 vec3_cross(const Vec3 a, const Vec3 b){
   return vec3_new(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
-}
-
-f32 vec3_mag(Vec3 a){
-  return hypotf(hypotf(a.x, a.y), a.z);
-}
-
-Vec3 vec3_normal(Vec3 v){
-  float scale = vec3_mag(v);
-  if(scale == 0.f) return vec3_expand(0);
-  return vec3_div(v, scale);
-}
-
-Vec3 vec3_piecewise(Vec3 a, Vec3 b){
-  return vec3_new(a.x * b.x, a.y * b.y, a.z * b.z);
-}
-
-Vec3 vec3_expand(float f){
-  return vec3_new(f, f, f);
 }
 
 Vec2 vec2_new(f32 x, f32 y){

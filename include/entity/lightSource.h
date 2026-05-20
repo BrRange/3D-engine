@@ -19,7 +19,7 @@ typedef struct LightSource_Diffuse{
   Vec3 dir;
 } LightSource_Diffuse;
 
-LightSource_Diffuse lightSource_newDiffuse(Vec3 intensity, Vec3 dir);
+LightSource_Diffuse lightSource_newDiffuse(const Vec3 intensity, const Vec3 dir);
 
 Vec3 lightSource_diffuse_iluminate(LightSource_Diffuse *diffuse, Vec3 *vertex);
 

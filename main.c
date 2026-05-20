@@ -93,6 +93,8 @@ void tick(SDL_Renderer *rend, CommonData *data){
     if(keyboardH_has(data->keyboardH, SDLK_D)) pSpeed = vec3_sub(pSpeed, vec3_mul(rotated, acc));
 
   pSpeed = vec3_mul(pSpeed, 1 - 0.999 * dt);
+
+  if(player->pos.y > 50) player->pos = vec3_expand(0);
 }
 
 void render(SDL_Renderer *rend, CommonData *data){
@@ -342,7 +344,7 @@ int main(){
     object_new(&ico_model, colors + 7, vec3_new(-400, 5, 0), 10),
     object_new(&ico_model, colors + 3, vec3_new(-425, 5, 0), 10),
     object_new(&ico_model, colors + 3, vec3_new(-400, 5, 25), 10),
-    object_new(&ico_model, colors + 7, vec3_new(-425, 5, 25), 10),
+    object_new(&ico_model, colors + 7, vec3_new(-425, 5, 25), 10)
   };
 
   objs[10].rot = quat_new(SDL_PI_F / 3, vec3_new(1, 0, 0));
@@ -365,20 +367,20 @@ int main(){
 
   Collider_Packed active[1] = {{ .sphere = collider_newSphere(objs + 6, vec3_new(0, 0, 0), objs[6].scale * (1.f + SDL_sqrtf(5.f)) / 2.f) }};
   Collider_Packed passive[] = {
-    {.box = collider_newBox(objs + 7, vec3_expand(0), vec3_expand(objs[7].scale))},
-    {.box = collider_newBox(objs + 9, vec3_expand(0), vec3_new(objs[9].scale, 0, objs[9].scale))},
-    {.box = collider_newBox(objs + 5, vec3_new(0, 0, 7), vec3_new(130, 130, 7))},
-    {.box = collider_newBox(objs + 10, vec3_expand(0), vec3_expand(objs[10].scale))},
+    {.box = collider_newBox(objs + 7, vec3_expand(0), vec3_expand(objs[7].scale), vec3_new(0, 1, 0))},
+    {.box = collider_newBox(objs + 9, vec3_new(0, 10, 0), vec3_new(objs[9].scale, 10, objs[9].scale), vec3_new(0, 1, 0))},
+    {.box = collider_newBox(objs + 5, vec3_new(0, 0, 7), vec3_new(130, 130, 7), vec3_new(0, 1, 0))},
+    {.box = collider_newBox(objs + 10, vec3_expand(0), vec3_expand(objs[10].scale), vec3_new(0, 1, 0))},
     {.sphere = collider_newSphere(objs + 11, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
     {.sphere = collider_newSphere(objs + 12, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
     {.sphere = collider_newSphere(objs + 13, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
-    {.sphere = collider_newSphere(objs + 14, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))}
+    {.sphere = collider_newSphere(objs + 14, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
   };
 
   collider_setResponse(&active[0].collider, CollisionType_Slide, 1.f);
   collider_setResponse(&passive[0].collider, CollisionType_Bounce, 2.f);
   collider_setResponse(&passive[1].collider, CollisionType_Slide, 1.f);
-  collider_setResponse(&passive[2].collider, CollisionType_Slide, 1000.f);
+  collider_setResponse(&passive[2].collider, CollisionType_Slide, 5.f);
   collider_setResponse(&passive[3].collider, CollisionType_Slide, -5.f);
   collider_setResponse(&passive[4].collider, CollisionType_Sink, 3.f);
   collider_setResponse(&passive[5].collider, CollisionType_Sink, 3.f);

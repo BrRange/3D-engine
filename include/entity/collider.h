@@ -65,10 +65,10 @@ Collider_Beam collider_newBeam(Object *anchor, Vec3 offset, Vec3 dir, f32 maxDis
 
 typedef struct Collider_Box{
   Collider base;
-  Vec3 extension;
+  Vec3 extension, normal;
 } Collider_Box;
 
-Collider_Box collider_newBox(Object *anchor, Vec3 offset, Vec3 extension);
+Collider_Box collider_newBox(Object *anchor, const Vec3 offset, const Vec3 extension, const Vec3 normal);
 
 /* Dispatch */
 bool collider_collide(Collider *a, Collider *b, CollisionInfo *info);

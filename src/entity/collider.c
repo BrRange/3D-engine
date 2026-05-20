@@ -90,14 +90,15 @@ Collider_Beam collider_newBeam(Object *anchor, Vec3 offset, Vec3 dir, f32 maxDis
   return beam;
 }
 
-Collider_Box collider_newBox(Object *anchor, Vec3 offset, Vec3 extension){
+Collider_Box collider_newBox(Object *anchor, const Vec3 offset, const Vec3 extension, const Vec3 normal){
   Collider_Box box = {
     .base = {
       .anchor = anchor,
       .type = ColliderType_Box,
-      .offset = offset
+      .offset = offset,
     },
-    .extension = extension
+    .extension = extension,
+    .normal = normal
   };
   return box;
 }
@@ -184,7 +185,7 @@ bool collider_sphere_sphere(Collider_Sphere *a, Collider_Sphere *b, CollisionInf
     info->penetration = info->distance - radius;
   }
 
-  return sqrDist <= radius * radius;
+  return sqrDist < radius * radius;
 }
 
 bool collider_sphere_pill(Collider_Sphere *sphere, Collider_Pill *pill, CollisionInfo *info){
@@ -218,7 +219,7 @@ bool collider_sphere_pill(Collider_Sphere *sphere, Collider_Pill *pill, Collisio
     info->penetration = info->distance - radius;
   }
 
-  return vec3_dot(proj, proj) <= radius * radius;
+  return vec3_dot(proj, proj) < radius * radius;
 }
 
 bool collider_sphere_beam(Collider_Sphere *sphere, Collider_Beam *beam, CollisionInfo *info){
@@ -242,13 +243,13 @@ bool collider_sphere_beam(Collider_Sphere *sphere, Collider_Beam *beam, Collisio
   }
 
   radius *= radius;
-  if(linearDist <= radius) return true;
+  if(linearDist < radius) return true;
   angularDist = vec3_dot(beamPos, beam->dir);
 
   f32 parallelism = angularDist / linearDist;
   if(parallelism >= 0) return false;
 
-  return linearDist - radius <= angularDist * parallelism;
+  return linearDist - radius < angularDist * parallelism;
 }
 
 bool collider_sphere_box(Collider_Sphere *sphere, Collider_Box *box, CollisionInfo *info){
@@ -270,12 +271,13 @@ bool collider_sphere_box(Collider_Sphere *sphere, Collider_Box *box, CollisionIn
   if(info){
     info->source = (Collider*)sphere;
     info->dest = (Collider*)box;
-    info->normal = vec3_rotate(vec3_normal(diff), box->base.anchor->rot);
+    if(dist == 0.f) info->normal = vec3_rotate(box->normal, box->base.anchor->rot);
+    else info->normal = vec3_rotate(vec3_normal(diff), box->base.anchor->rot);
     info->distance = dist;
     info->penetration = dist - sphere->radius;
   }
 
-  return dist <= sphere->radius;
+  return dist < sphere->radius;
 }
 
 bool collider_pill_pill(Collider_Pill *a, Collider_Pill *b, CollisionInfo *info){
