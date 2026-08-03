@@ -24,7 +24,7 @@ Object object_new(Model *model, Color *palette, const Vec3 pos, f32 scale){
     .palette = palette,
     .pos = pos,
     .scale = scale,
-    .rot = {.r = 1}
+    .rot = {1}
   };
   return obj;
 }
@@ -34,9 +34,7 @@ void object_rotate(Object *obj, Quaternion quat){
 }
 
 void object_move(Object *obj, const Vec3 dv){
-  obj->pos.x += dv.x;
-  obj->pos.y += dv.y;
-  obj->pos.z += dv.z;
+  obj->pos += dv;
 }
 
 const Vec3 vec3_id = {1, 1, 1};
@@ -64,13 +62,13 @@ void object_render(Object *obj, Canvas *canv, Camera *cam, LightSource_Packed *s
     vertex[2] = vec3_add(vertex[2], obj->pos);
 
     Vec3 lightPower = lightSource_iluminate(&sources[0].lightSource, vertex);
-    lightPower.x = SDL_clamp(lightPower.x, 0.f, 1.f);
-    lightPower.y = SDL_clamp(lightPower.y, 0.f, 1.f);
-    lightPower.z = SDL_clamp(lightPower.z, 0.f, 1.f);
+    lightPower[0] = SDL_clamp(lightPower[0], 0.f, 1.f);
+    lightPower[1] = SDL_clamp(lightPower[1], 0.f, 1.f);
+    lightPower[2] = SDL_clamp(lightPower[2], 0.f, 1.f);
     lightPower = vec3_add(lightPower, lightSource_iluminate(&sources[1].lightSource, vertex));
-    lightPower.x = SDL_clamp(lightPower.x, 0.f, 1.f);
-    lightPower.y = SDL_clamp(lightPower.y, 0.f, 1.f);
-    lightPower.z = SDL_clamp(lightPower.z, 0.f, 1.f);
+    lightPower[0] = SDL_clamp(lightPower[0], 0.f, 1.f);
+    lightPower[1] = SDL_clamp(lightPower[1], 0.f, 1.f);
+    lightPower[2] = SDL_clamp(lightPower[2], 0.f, 1.f);
 
     Vec3 proj[4] = {
       vec3_onCamera(vertex[0], cam),
@@ -80,9 +78,9 @@ void object_render(Object *obj, Canvas *canv, Camera *cam, LightSource_Packed *s
 
     f32 aspecRatio = canv->w / canv->h;
 
-    proj[0].x *= cam->fieldView * aspecRatio * 500.f, proj[0].y *= cam->fieldView / aspecRatio * 500.f;
-    proj[1].x *= cam->fieldView * aspecRatio * 500.f, proj[1].y *= cam->fieldView / aspecRatio * 500.f;
-    proj[2].x *= cam->fieldView * aspecRatio * 500.f, proj[2].y *= cam->fieldView / aspecRatio * 500.f;
+    proj[0][0] *= cam->fieldView * aspecRatio * 500.f, proj[0][1] *= cam->fieldView / aspecRatio * 500.f;
+    proj[1][0] *= cam->fieldView * aspecRatio * 500.f, proj[1][1] *= cam->fieldView / aspecRatio * 500.f;
+    proj[2][0] *= cam->fieldView * aspecRatio * 500.f, proj[2][1] *= cam->fieldView / aspecRatio * 500.f;
 
     Color color = obj->palette[polygon.colorIndex];
     color.asVec3 = vec3_piecewise(color.asVec3, lightPower);
@@ -90,7 +88,7 @@ void object_render(Object *obj, Canvas *canv, Camera *cam, LightSource_Packed *s
     i32 lastClipped, lastUnclipped;
 
     for(i32 j = 0; j < 3; ++j)
-    if(proj[j].z <= cam->nearPlane){
+    if(proj[j][2] <= cam->nearPlane){
       clipped[clipCount++] = proj[j];
       lastClipped = j;
     } else{
@@ -102,7 +100,7 @@ void object_render(Object *obj, Canvas *canv, Camera *cam, LightSource_Packed *s
     switch(clipCount){
     case 0:{
       for(u8 j = 0; j < 3; ++j)
-      proj[j].x /= proj[j].z, proj[j].y /= proj[j].z;
+      proj[j][0] /= proj[j][2], proj[j][1] /= proj[j][2];
     } break;
     case 1:{
       extraVec3 = true;
@@ -117,8 +115,8 @@ void object_render(Object *obj, Canvas *canv, Camera *cam, LightSource_Packed *s
         proj[2] = vec3_getClip(clipped[0], unclipped[1], cam->nearPlane);
         proj[3] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
       }
-      proj[0].x /= proj[0].z, proj[0].y /= proj[0].z;
-      proj[1].x /= proj[1].z, proj[1].y /= proj[1].z;
+      proj[0][0] /= proj[0][2], proj[0][1] /= proj[0][2];
+      proj[1][0] /= proj[1][2], proj[1][1] /= proj[1][2];
     } break;
     case 2:{
       proj[0] = unclipped[0];
@@ -129,7 +127,7 @@ void object_render(Object *obj, Canvas *canv, Camera *cam, LightSource_Packed *s
         proj[1] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
         proj[2] = vec3_getClip(clipped[1], unclipped[0], cam->nearPlane);
       }
-      proj[0].x /= proj[0].z, proj[0].y /= proj[0].z;
+      proj[0][0] /= proj[0][2], proj[0][1] /= proj[0][2];
     } break;
     default:
       continue;

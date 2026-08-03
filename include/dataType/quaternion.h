@@ -3,9 +3,7 @@
 
 #include "dataType/vector.h"
 
-typedef struct Quaternion{
-  f32 r, x, y, z;
-} Quaternion;
+typedef Vec3 Quaternion;
 
 Quaternion quat_new(f32 angle, Vec3 normAxis);
 

@@ -2,20 +2,60 @@
 #include <SDL3/SDL_stdinc.h>
 #include "dataType/vector.h"
 
+Vec3 vec3_new(f32 x, f32 y, f32 z){
+  return (Vec3){x, y, z};
+}
+
 Vec3 vec3_getClip(const Vec3 clip, const Vec3 unclip, f32 z){
-  Vec3 v = {.z = z};
-  f32
-    dx = unclip.x - clip.x,
-    dy = unclip.y - clip.y,
-    dz = unclip.z - clip.z;
-  if(dz == 0.f) dz = 1e-6f;
-  v.x = dx / dz * (z - clip.z) + clip.x;
-  v.y = dy / dz * (z - clip.z) + clip.y;
+  Vec3 v = {0, 0, z};
+  Vec3 dv = unclip - clip;
+  if(dv[2] == 0.f) dv[2] = 1e-6f;
+  v[0] = dv[0] / dv[2] * (z - clip[2]) + clip[0];
+  v[1] = dv[1] / dv[2] * (z - clip[2]) + clip[1];
   return v;
 }
 
+Vec3 vec3_add(const Vec3 a, const Vec3 b){
+  return a + b;
+}
+
+Vec3 vec3_sub(const Vec3 a, const Vec3 b){
+  return a - b;
+}
+
+Vec3 vec3_mul(const Vec3 v, f32 scalar){
+  return v * scalar;
+}
+
+Vec3 vec3_div(const Vec3 v, f32 scalar){
+  return v / scalar;
+}
+
+f32 vec3_dot(const Vec3 a, const Vec3 b){
+  Vec3 d = a * b;
+  return d[0] + d[1] + d[2];
+}
+
 Vec3 vec3_cross(const Vec3 a, const Vec3 b){
-  return vec3_new(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+  return vec3_new(a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]);
+}
+
+f32 vec3_mag(const Vec3 v){
+  return hypotf(v[0], hypotf(v[1], v[2]));
+}
+
+Vec3 vec3_normal(const Vec3 v){
+  f32 m = vec3_mag(v);
+  if(!m) return vec3_expand(0.f);
+  return vec3_div(v, m);
+}
+
+Vec3 vec3_piecewise(const Vec3 a, const Vec3 b){
+  return a * b;
+}
+
+Vec3 vec3_expand(float f){
+  return vec3_new(f, f, f);
 }
 
 Vec2 vec2_new(f32 x, f32 y){

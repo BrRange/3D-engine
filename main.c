@@ -66,7 +66,7 @@ void tick(SDL_Renderer *rend, CommonData *data){
     if(collider_collide(act, pass, &cinfo)){
       f32 invert = cinfo.source == act ? 1 : -1;
       cinfo.normal = vec3_mul(cinfo.normal, invert);
-      if(cinfo.normal.y > 0.7f){
+      if(cinfo.normal[1] > 0.7f){
         jumpNormal = vec3_add(jumpNormal, cinfo.normal);
         jumpNormal = vec3_normal(jumpNormal);
         ableJump = true;
@@ -76,25 +76,25 @@ void tick(SDL_Renderer *rend, CommonData *data){
     }
   }
 
-  pSpeed.y += 10;
+  pSpeed[1] += 10;
   if(ableJump){
     if(keyboardH_has(data->keyboardH, SDLK_SPACE)) pSpeed = vec3_add(pSpeed, vec3_mul(jumpNormal, -240));
   } else{
     acc /= 5;
   }
     cameraView = camera_viewVec3(data->cam);
-    rotated = vec3_new(cameraView.x, 0, cameraView.z);
+    rotated = vec3_new(cameraView[0], 0, cameraView[2]);
     rotated = vec3_normal(rotated);
     if(keyboardH_has(data->keyboardH, SDLK_W)) pSpeed = vec3_add(pSpeed, vec3_mul(rotated, acc));
     if(keyboardH_has(data->keyboardH, SDLK_S)) pSpeed = vec3_sub(pSpeed, vec3_mul(rotated, acc));
-    rotated = vec3_new(-cameraView.z, 0, cameraView.x);
+    rotated = vec3_new(-cameraView[2], 0, cameraView[0]);
     rotated = vec3_normal(rotated);
     if(keyboardH_has(data->keyboardH, SDLK_A)) pSpeed = vec3_add(pSpeed, vec3_mul(rotated, acc));
     if(keyboardH_has(data->keyboardH, SDLK_D)) pSpeed = vec3_sub(pSpeed, vec3_mul(rotated, acc));
 
   pSpeed = vec3_mul(pSpeed, 1 - 0.999 * dt);
 
-  if(player->pos.y > 50) player->pos = vec3_expand(0);
+  if(player->pos[1] > 50) player->pos = vec3_expand(0);
 }
 
 void render(SDL_Renderer *rend, CommonData *data){
@@ -115,7 +115,7 @@ void render(SDL_Renderer *rend, CommonData *data){
 
 /* Debug only */
 void fill_icosahedron(Vec3 *vert, Polygon *poly){
-  f32 longer = 0.5f + SDL_sqrtf(5) / 2.f, shorter = 1.f;
+  f32 longer = 0.5f + sqrtf(5) / 2.f, shorter = 1.f;
   Vec3 rect[4] = {
     vec3_new( shorter, longer, 0),
     vec3_new(-shorter, longer, 0),
@@ -374,7 +374,7 @@ int main(){
     {.sphere = collider_newSphere(objs + 11, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
     {.sphere = collider_newSphere(objs + 12, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
     {.sphere = collider_newSphere(objs + 13, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
-    {.sphere = collider_newSphere(objs + 14, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
+    {.sphere = collider_newSphere(objs + 14, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))}
   };
 
   collider_setResponse(&active[0].collider, CollisionType_Slide, 1.f);
@@ -410,7 +410,7 @@ int main(){
     dtime = start - end;
     if(dtime >= 16){
       end = start;
-      if(!handleEvents(&kbHandler, &moHandler)) break;;
+      if(!handleEvents(&kbHandler, &moHandler)) break;
 
       tick(rend, &data);
       render(rend, &data);

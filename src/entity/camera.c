@@ -1,5 +1,6 @@
 #include <SDL3/SDL_stdinc.h>
 #include "entity/camera.h"
+#include <math.h>
 
 Camera camera_new(const Vec3 v, f32 farPlane, f32 nearPlane, f32 fieldView){
   Camera cam = {
@@ -41,12 +42,12 @@ void camera_moveRel(Camera *cam, const Vec3 dPos){
   f32 ps, pc, ys, yc;
   sincosf(cam->pitch, &ps, &pc);
   sincosf(cam->yaw, &ys, &yc);
-  cam->pos.x += dPos.x * yc
-                + dPos.y * -ys * ps
-                + dPos.z * pc * ys;
+  cam->pos[0] += dPos[0] * yc
+                + dPos[1] * -ys * ps
+                + dPos[2] * pc * ys;
 
-    cam->pos.y += dPos.y * pc + dPos.z * ps;
-    cam->pos.z += dPos.x * -ys + dPos.y * -yc * ps + dPos.z * pc * yc;
+    cam->pos[1] += dPos[1] * pc + dPos[2] * ps;
+    cam->pos[2] += dPos[0] * -ys + dPos[1] * -yc * ps + dPos[2] * pc * yc;
 }
 
 Vec3 vec3_onCamera(Vec3 v, const Camera *restrict cam){

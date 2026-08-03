@@ -24,9 +24,9 @@ void shader_pixel(Canvas *canv, Vec3 *vertex, Color color){
   f32 cx = canv->w / 2, cy = canv->h / 2;
 
   Vec2
-  a = {vertex[0].x + cx, vertex[0].y + cy},
-  b = {vertex[1].x + cx, vertex[1].y + cy},
-  c = {vertex[2].x + cx, vertex[2].y + cy};
+  a = {vertex[0][0] + cx, vertex[0][1] + cy},
+  b = {vertex[1][0] + cx, vertex[1][1] + cy},
+  c = {vertex[2][0] + cx, vertex[2][1] + cy};
   
   if(vec2_edge(a, b, c) <= 0.f) return;
   
@@ -40,11 +40,11 @@ void shader_pixel(Canvas *canv, Vec3 *vertex, Color color){
   const Vec3
   xdiff = vec3_new(b.y - a.y, c.y - b.y, a.y - c.y),
   ydiff = vec3_new(b.x - a.x, c.x - b.x, a.x - c.x),
-  depth = vec3_new(1.f / vertex[0].z, 1.f / vertex[1].z, 1.f / vertex[2].z);
+  depth = vec3_new(1.f / vertex[0][2], 1.f / vertex[1][2], 1.f / vertex[2][2]);
 
-  f32 iAB = (b.x * a.y - a.x * b.y) + xdiff.x * bounds[0] - ydiff.x * bounds[2];
-  f32 iBC = (c.x * b.y - b.x * c.y) + xdiff.y * bounds[0] - ydiff.y * bounds[2];
-  f32 iCA = (a.x * c.y - c.x * a.y) + xdiff.z * bounds[0] - ydiff.z * bounds[2];
+  f32 iAB = (b.x * a.y - a.x * b.y) + xdiff[0] * bounds[0] - ydiff[0] * bounds[2];
+  f32 iBC = (c.x * b.y - b.x * c.y) + xdiff[1] * bounds[0] - ydiff[1] * bounds[2];
+  f32 iCA = (a.x * c.y - c.x * a.y) + xdiff[2] * bounds[0] - ydiff[2] * bounds[2];
 
   f32 bary = 1.f / (iAB + iBC + iCA);
   
@@ -70,13 +70,13 @@ void shader_pixel(Canvas *canv, Vec3 *vertex, Color color){
       canv->zBuffer[idx] = thisZ;
 
       skip:
-      AB += xdiff.x;
-      BC += xdiff.y;
-      CA += xdiff.z;
+      AB += xdiff[0];
+      BC += xdiff[1];
+      CA += xdiff[2];
     }
-    iAB -= ydiff.x;
-    iBC -= ydiff.y;
-    iCA -= ydiff.z;
+    iAB -= ydiff[0];
+    iBC -= ydiff[1];
+    iCA -= ydiff[2];
   }
 }
 

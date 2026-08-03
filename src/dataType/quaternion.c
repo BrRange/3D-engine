@@ -4,48 +4,39 @@
 Quaternion quat_new(float angle, Vec3 normAxis){
   Quaternion quat;
   angle /= 2.f;
-  sincosf(angle, &angle, &quat.r);
-  quat.x = normAxis.x * angle;
-  quat.y = normAxis.y * angle;
-  quat.z = normAxis.z * angle;
+  sincosf(angle, &angle, &quat[0]);
+  quat[1] = normAxis[0] * angle;
+  quat[2] = normAxis[1] * angle;
+  quat[3] = normAxis[2] * angle;
   return quat;
 }
 
 Quaternion quat_compose(Quaternion quat, Quaternion val){
   Quaternion comp = {
-    .r = quat.r * val.r - quat.x * val.x - quat.y * val.y - quat.z * val.z,
-    .x = quat.r * val.x + quat.x * val.r + quat.y * val.z - quat.z * val.y,
-    .y = quat.r * val.y - quat.x * val.z + quat.y * val.r + quat.z * val.x,
-    .z = quat.r * val.z + quat.x * val.y - quat.y * val.x + quat.z * val.r,
+    quat[0] * val[0] - quat[1] * val[1] - quat[2] * val[2] - quat[3] * val[3],
+    quat[0] * val[1] + quat[1] * val[0] + quat[2] * val[3] - quat[3] * val[2],
+    quat[0] * val[2] - quat[1] * val[3] + quat[2] * val[0] + quat[3] * val[1],
+    quat[0] * val[3] + quat[1] * val[2] - quat[2] * val[1] + quat[3] * val[0],
   };
   return comp;
 }
 
 Quaternion quat_conjugate(Quaternion quat){
-  quat.x *= -1.f;
-  quat.y *= -1.f;
-  quat.z *= -1.f;
-  return quat;
+  Vec3 v = {1, -1, -1, -1};
+  return quat * v;
 }
 
 Quaternion quat_add(Quaternion a, Quaternion b){
-  a.r += b.r;
-  a.x += b.x;
-  a.y += b.y;
-  a.z += b.z;
-  return a;
+  return a + b;
 }
 
 Quaternion quat_mul(Quaternion quat, f32 scale){
-  quat.r *= scale;
-  quat.x *= scale;
-  quat.y *= scale;
-  quat.z *= scale;
-  return quat;
+  return quat * scale;
 }
 
 f32 quat_dot(Quaternion a, Quaternion b){
-  return a.r * b.r + a.x * b.x + a.y * b.y + a.z * b.z;
+  Quaternion q = a * b;
+  return q[0] + q[1] + q[2] + q[3];
 }
 
 Quaternion quat_slerp(Quaternion src, Quaternion dest, f32 t){
@@ -58,11 +49,11 @@ Quaternion quat_slerp(Quaternion src, Quaternion dest, f32 t){
 }
 
 Quaternion vec3_quat(Vec3 point){
-  return (Quaternion){0.f, point.x, point.y, point.z};
+  return (Quaternion){0.f, point[0], point[1], point[2]};
 }
 
 Vec3 quat_vec3(Quaternion quat){
-  return (Vec3){quat.x, quat.y, quat.z};
+  return (Vec3){quat[1], quat[2], quat[3]};
 }
 
 Vec3 vec3_rotate(Vec3 point, Quaternion quat){

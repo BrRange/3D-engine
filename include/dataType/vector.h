@@ -3,9 +3,7 @@
 
 #include "dataType/rustydef.h"
 
-typedef struct Vec3{
-  f32 x, y, z, w;
-} Vec3;
+typedef f32 __attribute__((vector_size(16))) Vec3;
 
 Vec3 vec3_new(f32 x, f32 y, f32 z);
 

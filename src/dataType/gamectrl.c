@@ -1,4 +1,5 @@
 #include "dataType/gamectrl.h"
+#include <SDL3/SDL_assert.h>
 
 void keyboardH_press(KeyboardHandler *kbH, u32 key) {
   if (kbH->used >= sizeof(kbH->keys) / sizeof(*kbH->keys)) return;

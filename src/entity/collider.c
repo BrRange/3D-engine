@@ -261,9 +261,9 @@ bool collider_sphere_box(Collider_Sphere *sphere, Collider_Box *box, CollisionIn
 
   spherePos = vec3_sub(spherePos, boxCenter);
   spherePos = vec3_rotate(spherePos, quat_conjugate(box->base.anchor->rot));
-  f32 dx = SDL_clamp(spherePos.x, -boxExtent.x, boxExtent.x);
-  f32 dy = SDL_clamp(spherePos.y, -boxExtent.y, boxExtent.y);
-  f32 dz = SDL_clamp(spherePos.z, -boxExtent.z, boxExtent.z);
+  f32 dx = SDL_clamp(spherePos[0], -boxExtent[0], boxExtent[0]);
+  f32 dy = SDL_clamp(spherePos[1], -boxExtent[1], boxExtent[1]);
+  f32 dz = SDL_clamp(spherePos[2], -boxExtent[2], boxExtent[2]);
 
   Vec3 diff = vec3_sub(vec3_new(dx, dy, dz), spherePos);
   f32 dist = SDL_sqrtf(vec3_dot(diff, diff));
