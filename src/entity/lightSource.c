@@ -11,11 +11,11 @@ LightSource_Diffuse lightSource_newDiffuse(const Vec3 intensity, const Vec3 dir)
 }
 
 Vec3 lightSource_diffuse_iluminate(LightSource_Diffuse *diffuse, Vec3 *vertex){
-  Vec3 cross = vec3_cross(vec3_sub(vertex[1], vertex[0]), vec3_sub(vertex[2], vertex[0]));
+  Vec3 cross = vec3_cross(vertex[1] - vertex[0], vertex[2] - vertex[0]);
   cross = vec3_normal(cross);
 
   float alignment = vec3_dot(diffuse->dir, cross);
-  return vec3_mul(diffuse->base.intensity, alignment);
+  return diffuse->base.intensity * alignment;
 }
 
 LightSource_Radial lightSource_newRadial(Vec3 intensity, Vec3 *anchor){

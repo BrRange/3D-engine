@@ -18,8 +18,6 @@ typedef struct CommonData{
   Canvas *canv;
   Object *objs;
   usz objCount;
-  Collider_Packed *activeColl, *passiveColl;
-  usz activeCollLen, passiveCollLen;
   LightSource_Packed sources[2];
 } CommonData;
 
@@ -27,74 +25,27 @@ void tick(SDL_Renderer *rend, CommonData *data){
   static Vec3 pSpeed;
   f32 dt = *data->deltaT / 1000.f;
 
+  Quaternion rot = quat_new(dt, vec3_new(0, 1, 0));
+  object_rotate(data->objs, rot);
+
   f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? 20.f : 8.f;
-
-  Object *player = data->objs + 6;
-
-  Quaternion time = quat_new(dt * M_PI / 30.f, vec3_new(0, 0, 1));
-  object_rotate(data->objs, time);
-  time = quat_new(dt * M_PI / 30.f / 60.f, vec3_new(0, 0, 1));
-  object_rotate(data->objs + 1, time);
-  time = quat_new(dt * M_PI / 30.f / 60.f / 12.f, vec3_new(0, 0, 1));
-  object_rotate(data->objs + 2, time);
-
-  time = quat_new(dt, vec3_new(0, 1, 0));
-  object_rotate(data->objs + 7, time);
-  object_rotate(data->objs + 8, time);
 
   Vec2 mouseM = mouseH_getMovement(data->mouseH);
 
   camera_rotate(data->cam, mouseM.x * 0.01f, mouseM.y * 0.01f);
   Vec3 cameraView = camera_viewVec3(data->cam), rotated;
 
-  player->pos = vec3_add(player->pos, vec3_mul(pSpeed, dt));
+  if(keyboardH_has(data->keyboardH, SDLK_SPACE)) camera_moveAbs(data->cam, vec3_new(0, -acc, 0));
+  if(keyboardH_has(data->keyboardH, SDLK_LCTRL)) camera_moveAbs(data->cam, vec3_new(0, acc, 0));
 
-  //if(keyboardH_has(data->keyboardH, SDLK_SPACE)) object_move(player, vec3_new(0, -acc, 0));
-  //if(keyboardH_has(data->keyboardH, SDLK_LCTRL)) object_move(player, vec3_new(0, acc, 0));
-
-  cameraView = vec3_mul(cameraView, 80);
-  cameraView = vec3_sub(player->pos, cameraView);
-  cameraView = vec3_sub(cameraView, data->cam->pos);
-  camera_moveAbs(data->cam, vec3_div(cameraView, 4));
-
-  CollisionInfo cinfo;
-  Vec3 jumpNormal = {0};
-  bool ableJump = false;
-  
-  for(usz i = 0; i < data->passiveCollLen; ++i){
-    Collider *act = &data->activeColl->collider, *pass = &(data->passiveColl + i)->collider;
-    if(collider_collide(act, pass, &cinfo)){
-      f32 invert = cinfo.source == act ? 1 : -1;
-      cinfo.normal = vec3_mul(cinfo.normal, invert);
-      if(cinfo.normal[1] > 0.7f){
-        jumpNormal = vec3_add(jumpNormal, cinfo.normal);
-        jumpNormal = vec3_normal(jumpNormal);
-        ableJump = true;
-      }
-      if(cinfo.snap) player->pos = vec3_add(player->pos, vec3_mul(cinfo.normal, cinfo.penetration));
-      pSpeed = collision_getResponse(&cinfo, pSpeed, dt);
-    }
-  }
-
-  pSpeed[1] += 10;
-  if(ableJump){
-    if(keyboardH_has(data->keyboardH, SDLK_SPACE)) pSpeed = vec3_add(pSpeed, vec3_mul(jumpNormal, -240));
-  } else{
-    acc /= 5;
-  }
-    cameraView = camera_viewVec3(data->cam);
-    rotated = vec3_new(cameraView[0], 0, cameraView[2]);
-    rotated = vec3_normal(rotated);
-    if(keyboardH_has(data->keyboardH, SDLK_W)) pSpeed = vec3_add(pSpeed, vec3_mul(rotated, acc));
-    if(keyboardH_has(data->keyboardH, SDLK_S)) pSpeed = vec3_sub(pSpeed, vec3_mul(rotated, acc));
-    rotated = vec3_new(-cameraView[2], 0, cameraView[0]);
-    rotated = vec3_normal(rotated);
-    if(keyboardH_has(data->keyboardH, SDLK_A)) pSpeed = vec3_add(pSpeed, vec3_mul(rotated, acc));
-    if(keyboardH_has(data->keyboardH, SDLK_D)) pSpeed = vec3_sub(pSpeed, vec3_mul(rotated, acc));
-
-  pSpeed = vec3_mul(pSpeed, 1 - 0.999 * dt);
-
-  if(player->pos[1] > 50) player->pos = vec3_expand(0);
+  cameraView = camera_viewVec3(data->cam);
+  rotated = cameraView;
+  if(keyboardH_has(data->keyboardH, SDLK_W)) camera_moveAbs(data->cam, rotated * acc);
+  if(keyboardH_has(data->keyboardH, SDLK_S)) camera_moveAbs(data->cam, rotated * -acc);
+  rotated = vec3_new(-cameraView[2], 0, cameraView[0]);
+  rotated = vec3_normal(rotated);
+  if(keyboardH_has(data->keyboardH, SDLK_A)) camera_moveAbs(data->cam, rotated * acc);
+  if(keyboardH_has(data->keyboardH, SDLK_D)) camera_moveAbs(data->cam, rotated * -acc);
 }
 
 void render(SDL_Renderer *rend, CommonData *data){
@@ -112,57 +63,55 @@ void render(SDL_Renderer *rend, CommonData *data){
   SDL_RenderPresent(rend);
 }
 
+void build_cube(Vec3 *vert, Polygon *poly){
+  for(int i = 0; i < 8; ++i)
+  vert[i] = vec3_new((i & 1) ? 1 : -1, (i & 2) ? 1 : -1, (i & 4) ? 1 : -1);
 
-/* Debug only */
-void fill_icosahedron(Vec3 *vert, Polygon *poly){
-  f32 longer = 0.5f + sqrtf(5) / 2.f, shorter = 1.f;
-  Vec3 rect[4] = {
-    vec3_new( shorter, longer, 0),
-    vec3_new(-shorter, longer, 0),
-    vec3_new(-shorter, -longer, 0),
-    vec3_new( shorter, -longer, 0)
-  };
-  Quaternion rotation;
-  rotation = quat_new(SDL_PI_F / 2, vec3_new(1, 0, 0));
-  vert[ 0] = vec3_rotate(rect[0], rotation);
-  vert[ 1] = vec3_rotate(rect[1], rotation);
-  vert[ 2] = vec3_rotate(rect[2], rotation);
-  vert[ 3] = vec3_rotate(rect[3], rotation);
-  rotation = quat_new(SDL_PI_F / 2, vec3_new(0, 1, 0));
-  vert[ 4] = vec3_rotate(rect[0], rotation);
-  vert[ 5] = vec3_rotate(rect[1], rotation);
-  vert[ 6] = vec3_rotate(rect[2], rotation);
-  vert[ 7] = vec3_rotate(rect[3], rotation);
-  rotation = quat_new(SDL_PI_F / 2, vec3_new(0, 0, 1));
-  vert[ 8] = vec3_rotate(rect[0], rotation);
-  vert[ 9] = vec3_rotate(rect[1], rotation);
-  vert[10] = vec3_rotate(rect[2], rotation);
-  vert[11] = vec3_rotate(rect[3], rotation);
+  u16 idx[3];
+  Vec2 uv[3];
 
-  SDL_memset(poly, 0, sizeof * poly * 20);
+  idx[0] = 0, idx[1] = 2, idx[2] = 3;
+  uv[0] = vec2_new(0.25, 0), uv[1] = vec2_new(0.25, 0.25), uv[2] = vec2_new(0.5, 0.25);
+  poly[0] = polygon_new(vec3_new(0, 0, -1), uv, idx);
+  idx[1] = 3, idx[2] = 1;
+  uv[1] = vec2_new(0.5, 0.25), uv[2] = vec2_new(0.5, 0);
+  poly[1] = polygon_new(vec3_new(0, 0, -1), uv, idx);
+  
+  idx[0] = 0, idx[1] = 1, idx[2] = 5;
+  uv[0] = vec2_new(0.25, 0.5), uv[1] = vec2_new(0.5, 0.5), uv[2] = vec2_new(0.5, 0.25);
+  poly[2] = polygon_new(vec3_new(0, -1, 0), uv, idx);
+  idx[1] = 5, idx[2] = 4;
+  uv[1] = vec2_new(0.5, 0.25), uv[2] = vec2_new(0.25, 0.25);
+  poly[3] = polygon_new(vec3_new(0, -1, 0), uv, idx);
 
-  poly[ 0] = polygon_new(0, 1, 6, 0);
-  poly[ 1] = polygon_new(1, 0, 5, 0);
-  poly[ 2] = polygon_new(2, 3, 7, 0);
-  poly[ 3] = polygon_new(3, 2, 4, 0);
-  poly[ 4] = polygon_new(4, 5, 11, 0);
-  poly[ 5] = polygon_new(5, 4, 8, 0);
-  poly[ 6] = polygon_new(6, 7, 10, 0);
-  poly[ 7] = polygon_new(7, 6, 9, 0);
-  poly[ 8] = polygon_new(8, 9, 1, 0);
-  poly[ 9] = polygon_new(9, 8, 2, 0);
-  poly[10] = polygon_new(10, 11, 0, 0);
-  poly[11] = polygon_new(11, 10, 3, 0);
-  poly[12] = polygon_new(5, 0, 11, 0);
-  poly[13] = polygon_new(0, 6, 10, 0);
-  poly[14] = polygon_new(6, 1, 9, 0);
-  poly[15] = polygon_new(1, 5, 8, 0);
-  poly[16] = polygon_new(4, 2, 8, 0);
-  poly[17] = polygon_new(2, 7, 9, 0);
-  poly[18] = polygon_new(3, 4, 11, 0);
-  poly[19] = polygon_new(7, 3, 10, 0);
+  idx[0] = 0, idx[1] = 4, idx[2] = 6;
+  uv[0] = vec2_new(0.25, 0.25), uv[1] = vec2_new(0, 0.25), uv[2] = vec2_new(0, 0.5);
+  poly[4] = polygon_new(vec3_new(0, -1, 0), uv, idx);
+  idx[1] = 6, idx[2] = 2;
+  uv[1] = vec2_new(0, 0.5), uv[2] = vec2_new(0.25, 0.5);
+  poly[5] = polygon_new(vec3_new(0, -1, 0), uv, idx);
+
+  idx[0] = 1, idx[1] = 3, idx[2] = 7;
+  uv[0] = vec2_new(0.5, 0.25), uv[1] = vec2_new(0.5, 0.5), uv[2] = vec2_new(0.75, 0.5);
+  poly[6] = polygon_new(vec3_new(0, -1, 0), uv, idx);
+  idx[1] = 7, idx[2] = 5;
+  uv[1] = vec2_new(0.75, 0.5), uv[2] = vec2_new(0.75, 0.25);
+  poly[7] = polygon_new(vec3_new(0, -1, 0), uv, idx);
+
+  idx[0] = 2, idx[1] = 6, idx[2] = 7;
+  uv[0] = vec2_new(0.25, 0.75), uv[1] = vec2_new(0.25, 1), uv[2] = vec2_new(0.5, 1);
+  poly[8] = polygon_new(vec3_new(0, -1, 0), uv, idx);
+  idx[1] = 7, idx[2] = 3;
+  uv[1] = vec2_new(0.5, 1), uv[2] = vec2_new(0.5, 0.75);
+  poly[9] = polygon_new(vec3_new(0, -1, 0), uv, idx);
+
+  idx[0] = 4, idx[1] = 5, idx[2] = 7;
+  uv[0] = vec2_new(0.5, 0.5), uv[1] = vec2_new(0.25, 0.5), uv[2] = vec2_new(0.25, 0.75);
+  poly[10] = polygon_new(vec3_new(0, -1, 0), uv, idx);
+  idx[1] = 7, idx[2] = 6;
+  uv[1] = vec2_new(0.25, 0.75), uv[2] = vec2_new(0.5, 0.75);
+  poly[11] = polygon_new(vec3_new(0, -1, 0), uv, idx);
 }
-/* ---------- */
 
 int main(){
   SDL_Window *win;
@@ -181,211 +130,20 @@ int main(){
 
   Camera cam = camera_new(vec3_new(0, 0, 0), 200, 1.f, 1.f / SDL_tanf(2.f * SDL_PI_F / 3.f / 2.f));
 
-  Color colors[] = {
-    color_new(1, 0, 0),
-    color_new(0, 1, 0),
-    color_new(0, 0, 1),
-    color_new(1, 1, 1),
-    color_new(0, 1, 1),
-    color_new(1, 0, 1),
-    color_new(1, 1, 0),
-    color_new(0, 0, 0)
-  };
+  Vec3 vert[8];
+  Polygon poly[12];
 
-  Vec3 zeCube_vert[] = {
-    vec3_new(1, -1, -1),
-    vec3_new(-1, -1, -1),
-    vec3_new(-1, -1, 1),
-    vec3_new(1, -1, 1),
-    vec3_new(1, 1, -1),
-    vec3_new(-1, 1, -1),
-    vec3_new(-1, 1, 1),
-    vec3_new(1, 1, 1)
-  };
+  build_cube(vert, poly);
 
-  Polygon zeCube_poly[] = {
-    polygon_new(2, 1, 0, 0),
-    polygon_new(3, 2, 0, 0),
-    polygon_new(1, 4, 0, 0),
-    polygon_new(5, 4, 1, 0),
-    polygon_new(4, 3, 0, 0),
-    polygon_new(4, 7, 3, 0),
-    polygon_new(2, 5, 1, 0),
-    polygon_new(6, 5, 2, 0),
-    polygon_new(3, 6, 2, 0),
-    polygon_new(7, 6, 3, 0),
-    polygon_new(5, 6, 4, 0),
-    polygon_new(6, 7, 4, 0)
-  };
+  Model mod = model_new(vert, poly, arrLen(poly));
 
-  Model zeCube_model = model(zeCube_vert, arrLen(zeCube_vert), zeCube_poly, arrLen(zeCube_poly));
+  Object objs[] = {object_new(&mod, SDL_LoadSurface("tex.png"), vec3_new(0, 0, 100), 10.f)};
 
-  Polygon zeInv_poly[] = {
-    polygon_new(2, 0, 1, 0),
-    polygon_new(3, 0, 2, 0),
-    polygon_new(1, 0, 4, 0),
-    polygon_new(5, 1, 4, 0),
-    polygon_new(4, 0, 3, 0),
-    polygon_new(4, 3, 7, 0),
-    polygon_new(2, 1, 5, 0),
-    polygon_new(6, 2, 5, 0),
-    polygon_new(3, 2, 6, 0),
-    polygon_new(7, 3, 6, 0),
-    polygon_new(5, 4, 6, 0),
-    polygon_new(6, 4, 7, 0)
-  };
-
-  Model zeInv_model = model(zeCube_vert, arrLen(zeCube_vert), zeInv_poly, arrLen(zeInv_poly));
-
-  Vec3 vert[][4] = {
-    {vec3_new(.01, -1, 0), vec3_new(-.01, -1, 0), vec3_new(-.01, 0, 0), vec3_new(.01, 0, 0)},
-    {vec3_new(.02, -1, 0), vec3_new(-.02, -1, 0), vec3_new(-.02, 0, 0), vec3_new(.02, 0, 0)},
-    {vec3_new(.05, -1, 0), vec3_new(-.05, -1, 0), vec3_new(-.05, 0, 0), vec3_new(.05, 0, 0)},
-  };
-  Polygon poly[] = {polygon_new(0, 1, 2, 0), polygon_new(0, 2, 3, 0)};
-  Model models[] = {
-    {.vec3 = vert[0], .vec3Count = arrLen(vert[0]), .polygon = poly, .polyCount = arrLen(poly)},
-    {.vec3 = vert[1], .vec3Count = arrLen(vert[1]), .polygon = poly, .polyCount = arrLen(poly)},
-    {.vec3 = vert[2], .vec3Count = arrLen(vert[2]), .polygon = poly, .polyCount = arrLen(poly)}
-  };
-
-  Vec3 backdropVert[] = {
-    vec3_new(0.5f, -sqrtf(3) / 2.f, 0),
-    vec3_new(-0.5f, -sqrtf(3) / 2.f, 0),
-    vec3_new(-1, 0, 0),
-    vec3_new(-0.5f, sqrtf(3) / 2.f, 0),
-    vec3_new(0.5f, sqrtf(3) / 2.f, 0),
-    vec3_new(1, 0, 0)
-  };
-  Polygon backdropPoly[] = {
-    polygon_new(0, 1, 5, 0),
-    polygon_new(1, 2, 5, 0),
-    polygon_new(2, 3, 4, 0),
-    polygon_new(2, 4, 5, 0)
-  };
-  Model backdropModel = {.vec3 = backdropVert, .vec3Count = arrLen(backdropVert), .polygon = backdropPoly, .polyCount = arrLen(backdropPoly)};
-
-  Vec3 thick_vert[] = {
-    vec3_new(0.5f, -sqrtf(3) / 2.f, 0),
-    vec3_new(-0.5f, -sqrtf(3) / 2.f, 0),
-    vec3_new(-1, 0, 0),
-    vec3_new(-0.5f, sqrtf(3) / 2.f, 0),
-    vec3_new(0.5f, sqrtf(3) / 2.f, 0),
-    vec3_new(1, 0, 0),
-    vec3_new(0.5f, -sqrtf(3) / 2.f, 0.1),
-    vec3_new(-0.5f, -sqrtf(3) / 2.f, 0.1),
-    vec3_new(-1, 0, 0.1),
-    vec3_new(-0.5f, sqrtf(3) / 2.f, 0.1),
-    vec3_new(0.5f, sqrtf(3) / 2.f, 0.1),
-    vec3_new(1, 0, 0.1)
-  };
-
-  Polygon thick_poly[] = {
-    polygon_new(0, 1, 5, 0),
-    polygon_new(1, 2, 5, 0),
-    polygon_new(2, 3, 4, 0),
-    polygon_new(2, 4, 5, 0),
-    polygon_new(11, 7, 6, 0),
-    polygon_new(11, 8, 7, 0),
-    polygon_new(10, 9, 8, 0),
-    polygon_new(11, 10, 8, 0),
-    polygon_new(0, 6, 1, 0),
-    polygon_new(1, 6, 7, 0),
-    polygon_new(1, 7, 2, 0),
-    polygon_new(2, 7, 8, 0),
-    polygon_new(2, 8, 3, 0),
-    polygon_new(3, 8, 9, 0),
-    polygon_new(3, 9, 4, 0),
-    polygon_new(4, 9, 10, 0),
-    polygon_new(4, 10, 5, 0),
-    polygon_new(5, 10, 11, 0),
-    polygon_new(5, 11, 6, 0),
-    polygon_new(6, 0, 5, 0)
-  };
-
-  Model thick_model = model(thick_vert, arrLen(thick_vert), thick_poly, arrLen(thick_poly));
-
-  Vec3 plane_vert[] = {
-    vec3_new(-1, 0, 1),
-    vec3_new(-1, 0, -1),
-    vec3_new(1, 0, -1),
-    vec3_new(1, 0, 1)
-  };
-
-  Polygon plane_poly[] = {
-    polygon_new(0, 1, 2, 0),
-    polygon_new(0, 2, 3, 0)
-  };
-
-  Model plane_model = model(plane_vert, arrLen(plane_vert), plane_poly, arrLen(plane_poly));
-
-  Vec3 ico_vert[12];
-
-  Polygon ico_poly[20];
-
-  fill_icosahedron(ico_vert, ico_poly);
-
-  Model ico_model = model(ico_vert, 12, ico_poly, 20);
-
-  Color honeyC = color_new(1, 0.7647059f, 0.043137256f);
-
-  Object objs[] = {
-    object_new(&models[0], colors + 7, vec3_new(-20, 5 - 100, 19.8), 100),
-    object_new(&models[1], colors + 7, vec3_new(-20, 5 - 100, 19.8), 90),
-    object_new(&models[2], colors + 7, vec3_new(-20, 5 - 100, 19.8), 40),
-    object_new(&backdropModel, colors + 7, vec3_new(-20, 5 - 100, 19.8), 5),
-    object_new(&backdropModel, colors + 3, vec3_new(-20, 5 - 100, 19.9), 120),
-    object_new(&thick_model, colors + 2, vec3_new(-20, 5 - 100, 20), 130),
-    object_new(&ico_model, colors, vec3_expand(0), 5),
-    object_new(&zeCube_model, colors + 4, vec3_new(0, 0, -200), 10),
-    object_new(&zeInv_model, colors + 7, vec3_new(0, 0, -200), 11),
-    object_new(&plane_model, colors + 2, vec3_new(0, 15, 0), 1000),
-    object_new(&zeCube_model, &honeyC, vec3_new(400, 75, 0), 200),
-    object_new(&ico_model, colors + 7, vec3_new(-400, 5, 0), 10),
-    object_new(&ico_model, colors + 3, vec3_new(-425, 5, 0), 10),
-    object_new(&ico_model, colors + 3, vec3_new(-400, 5, 25), 10),
-    object_new(&ico_model, colors + 7, vec3_new(-425, 5, 25), 10)
-  };
-
-  objs[10].rot = quat_new(SDL_PI_F / 3, vec3_new(1, 0, 0));
+  if(!objs[0].UVmap) SDL_Log(__FILE_NAME__ ":%u %s", __LINE__, SDL_GetError());
 
   const u32 objLen = arrLen(objs);
 
-  u32 renderList[objLen];
-  for(u32 u = 0; u < objLen; ++u) renderList[u] = u;
-
   SDL_GetCurrentTime(&dtime);
-  SDL_DateTime dateTime;
-  SDL_TimeToDateTime(dtime, &dateTime, true);
-
-  Quaternion time = quat_new(dateTime.second * M_PI / 30.f, vec3_new(0, 0, 1));
-  object_rotate(objs + 0, time);
-  time = quat_new(dateTime.minute * M_PI / 30.f, vec3_new(0, 0, 1));
-  object_rotate(objs + 1, time);
-  time = quat_new(dateTime.hour * M_PI / 6.f, vec3_new(0, 0, 1));
-  object_rotate(objs + 2, time);
-
-  Collider_Packed active[1] = {{ .sphere = collider_newSphere(objs + 6, vec3_new(0, 0, 0), objs[6].scale * (1.f + SDL_sqrtf(5.f)) / 2.f) }};
-  Collider_Packed passive[] = {
-    {.box = collider_newBox(objs + 7, vec3_expand(0), vec3_expand(objs[7].scale), vec3_new(0, 1, 0))},
-    {.box = collider_newBox(objs + 9, vec3_new(0, 10, 0), vec3_new(objs[9].scale, 10, objs[9].scale), vec3_new(0, 1, 0))},
-    {.box = collider_newBox(objs + 5, vec3_new(0, 0, 7), vec3_new(130, 130, 7), vec3_new(0, 1, 0))},
-    {.box = collider_newBox(objs + 10, vec3_expand(0), vec3_expand(objs[10].scale), vec3_new(0, 1, 0))},
-    {.sphere = collider_newSphere(objs + 11, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
-    {.sphere = collider_newSphere(objs + 12, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
-    {.sphere = collider_newSphere(objs + 13, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))},
-    {.sphere = collider_newSphere(objs + 14, vec3_expand(0), 5 * (1.f + SDL_sqrtf(5.f)))}
-  };
-
-  collider_setResponse(&active[0].collider, CollisionType_Slide, 1.f);
-  collider_setResponse(&passive[0].collider, CollisionType_Bounce, 2.f);
-  collider_setResponse(&passive[1].collider, CollisionType_Slide, 1.f);
-  collider_setResponse(&passive[2].collider, CollisionType_Slide, 5.f);
-  collider_setResponse(&passive[3].collider, CollisionType_Slide, -5.f);
-  collider_setResponse(&passive[4].collider, CollisionType_Sink, 3.f);
-  collider_setResponse(&passive[5].collider, CollisionType_Sink, 3.f);
-  collider_setResponse(&passive[6].collider, CollisionType_Sink, 3.f);
-  collider_setResponse(&passive[7].collider, CollisionType_Sink, 3.f);
 
   CommonData data = {
     .deltaT = &dtime,
@@ -395,14 +153,6 @@ int main(){
     .objs = objs,
     .canv = &canv,
     .objCount = objLen,
-    .activeColl = active,
-    .activeCollLen = arrLen(active),
-    .passiveColl = passive,
-    .passiveCollLen = arrLen(passive),
-    .sources = {
-      {.diffuse = lightSource_newDiffuse(vec3_new(1.4, 1.4, 0.8), vec3_new(1, -1, -1))},
-      {.ambient = lightSource_newAmbient(vec3_new(0.4, 0.6, 0.4))}
-    }
   };
   bool running = true;
 
@@ -422,6 +172,5 @@ int main(){
   SDL_DestroyWindow(win);
   SDL_DestroyRenderer(rend);
   canvas_destroy(&canv);
-  SDL_assert((SDL_Log("Program in debug mode"), 0));
   SDL_Quit();
 }

@@ -1,4 +1,5 @@
 #include "dataType/canvas.h"
+#include "entity/object.h"
 
 Color color_new(f32 r, f32 g, f32 b){
   Color c = {
@@ -19,7 +20,7 @@ PixelColor pixelColor_new(u8 r, u8 g, u8 b, u8 a){
   return p;
 }
 
-void shader_pixel(Canvas *canv, Vec3 *vertex, Color color){
+void shader_pixel(Canvas *canv, Object *obj, Vec2 *UV, Vec3 *vertex){
   i32 bounds[4];
   f32 cx = canv->w / 2, cy = canv->h / 2;
 
@@ -61,11 +62,26 @@ void shader_pixel(Canvas *canv, Vec3 *vertex, Color color){
       
       Vec3 weight = vec3_new(BC * bary, CA * bary, AB * bary);
       
-      f32 thisZ = 1.f / vec3_dot(weight, depth);
+      f32 thisInv = vec3_dot(weight, depth);
+      f32 thisZ = 1.f / thisInv;
       
       if(thisZ >= canv->zBuffer[idx]) goto skip;
 
-      PixelColor pcolor = pixelColor_new(255 * color.r, 255 * color.g, 255 * color.b, 255);
+      f32 W[3] = {
+        1.f / vertex[0][2],
+        1.f / vertex[1][2],
+        1.f / vertex[2][2]
+      };
+
+      Vec2 pixel_uv = vec2_mul(UV[0], weight[0] * W[0]);
+      pixel_uv = vec2_add(pixel_uv, vec2_mul(UV[1], weight[1] * W[1]));
+      pixel_uv = vec2_add(pixel_uv, vec2_mul(UV[2], weight[2] * W[2]));
+      pixel_uv = vec2_mul(pixel_uv, thisZ);
+      Color color;
+      SDL_Rect UVsize;
+      SDL_GetSurfaceClipRect(obj->UVmap, &UVsize);
+      SDL_ReadSurfacePixelFloat(obj->UVmap, pixel_uv.x * UVsize.w, pixel_uv.y * UVsize.h, &color.r, &color.g, &color.b, NULL);
+      PixelColor pcolor = pixelColor_new(255 * color.r, 255 * color.g, 255 *color.b, 255);
       canv->pixel[idx] = pcolor;
       canv->zBuffer[idx] = thisZ;
 

@@ -15,22 +15,6 @@ Vec3 vec3_getClip(const Vec3 clip, const Vec3 unclip, f32 z){
   return v;
 }
 
-Vec3 vec3_add(const Vec3 a, const Vec3 b){
-  return a + b;
-}
-
-Vec3 vec3_sub(const Vec3 a, const Vec3 b){
-  return a - b;
-}
-
-Vec3 vec3_mul(const Vec3 v, f32 scalar){
-  return v * scalar;
-}
-
-Vec3 vec3_div(const Vec3 v, f32 scalar){
-  return v / scalar;
-}
-
 f32 vec3_dot(const Vec3 a, const Vec3 b){
   Vec3 d = a * b;
   return d[0] + d[1] + d[2];
@@ -47,15 +31,15 @@ f32 vec3_mag(const Vec3 v){
 Vec3 vec3_normal(const Vec3 v){
   f32 m = vec3_mag(v);
   if(!m) return vec3_expand(0.f);
-  return vec3_div(v, m);
+  return v / m;
 }
 
-Vec3 vec3_piecewise(const Vec3 a, const Vec3 b){
-  return a * b;
-}
-
-Vec3 vec3_expand(float f){
+Vec3 vec3_expand(f32 f){
   return vec3_new(f, f, f);
+}
+
+Vec3 vec3_mix(const Vec3 a, const Vec3 b, f32 t){
+  return a * (1.f - t) + b * t;
 }
 
 Vec2 vec2_new(f32 x, f32 y){
@@ -125,4 +109,8 @@ void vec2_bound(Vec2 a, Vec2 b, Vec2 c, i32 bounds[4]){
   bounds[3] = SDL_max(a.y, SDL_max(b.y, c.y));
   bounds[1] += 1;
   bounds[3] += 1;
+}
+
+Vec2 vec2_mix(const Vec2 a, const Vec2 b, f32 t){
+  return vec2_add(vec2_mul(a, (1.f - t)), vec2_mul(b, t));
 }

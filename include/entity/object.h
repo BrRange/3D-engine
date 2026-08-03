@@ -6,33 +6,33 @@
 #include "entity/lightSource.h"
 
 struct Polygon{
+  Vec3 normal;
+  Vec2 uv[3];
   u16 idx[3];
-  u16 colorIndex;
 };
 typedef struct Polygon Polygon;
 
-Polygon polygon_new(u16 idx0, u16 idx1, u16 idx2, u16 colorIndex);
+Polygon polygon_new(Vec3 normal, Vec2 *uv, u16 *idx);
 
 struct Model{
   Vec3 *vec3;
-  size_t vec3Count;
   Polygon *polygon;
   size_t polyCount;
 };
 typedef struct Model Model;
 
-Model model(Vec3 *vert, size_t vertCount, Polygon *polygon, size_t polyCount);
+Model model_new(Vec3 *vert, Polygon *polygon, size_t polyCount);
 
 struct Object{
   Model *model;
-  Color *palette;
+  SDL_Surface *UVmap;
   Quaternion rot;
   Vec3 pos;
   f32 scale;
 };
 typedef struct Object Object;
 
-Object object_new(Model *model, Color *palette, const Vec3 rCenter, f32 scale);
+Object object_new(Model *model, SDL_Surface *UVmap, const Vec3 rCenter, f32 scale);
 
 void object_rotate(Object *obj, Quaternion quat);
 

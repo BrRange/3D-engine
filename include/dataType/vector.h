@@ -11,14 +11,6 @@ Vec3 vec3_getClip(const Vec3 clip, const Vec3 unclip, f32 z);
 
 /* Vec3 operators */
 
-Vec3 vec3_add(const Vec3 a, const Vec3 b);
-
-Vec3 vec3_sub(const Vec3 a, const Vec3 b);
-
-Vec3 vec3_mul(const Vec3 v, f32 scalar);
-
-Vec3 vec3_div(const Vec3 v, f32 scalar);
-
 f32 vec3_dot(const Vec3 a, const Vec3 b);
 
 Vec3 vec3_cross(const Vec3 a, const Vec3 b);
@@ -27,9 +19,9 @@ f32 vec3_mag(const Vec3 v);
 
 Vec3 vec3_normal(const Vec3 v);
 
-Vec3 vec3_piecewise(const Vec3 a, const Vec3 b);
+Vec3 vec3_expand(f32 f);
 
-Vec3 vec3_expand(float f);
+Vec3 vec3_mix(const Vec3 a, const Vec3 b, f32 f);
 
 typedef struct Vec2{
   f32 x, y;

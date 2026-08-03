@@ -9,7 +9,7 @@ Player player_new(Object *body, Vec3 pos){
 }
 
 void player_tick(Player *pl, f32 dt){
-  pl->body->pos = vec3_add(pl->body->pos, pl->speed);
+  pl->body->pos += pl->speed;
   if(pl->body->pos[1] >= pl->body->scale / 2){
     pl->body->pos[1] = pl->body->scale / 2;
     if(pl->speed[1] > 0) pl->speed[1] *= -0.6f;

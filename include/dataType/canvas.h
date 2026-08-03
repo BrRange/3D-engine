@@ -5,6 +5,9 @@
 #include "dataType/vector.h"
 #include "entity/camera.h"
 
+typedef struct Object Object;
+typedef struct Polygon Polygon;
+
 typedef union Color{
   f32 color[3];
   struct{
@@ -31,7 +34,7 @@ typedef struct Canvas{
   i32 w, h;
 } Canvas;
 
-void shader_pixel(Canvas *canv, Vec3 vertex[3], Color color);
+void shader_pixel(Canvas *canv, Object *obj, Vec2 *UV, Vec3 *vertex);
 
 Canvas canvas_new(SDL_Renderer *rend, u32 w, u32 h);
 

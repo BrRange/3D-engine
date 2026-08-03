@@ -35,7 +35,7 @@ void camera_rotateUnbound(Camera *cam, f32 dYaw, f32 dPitch){
 }
 
 void camera_moveAbs(Camera *cam, const Vec3 dPos){
-  cam->pos = vec3_add(cam->pos, dPos);
+  cam->pos += dPos;
 }
 
 void camera_moveRel(Camera *cam, const Vec3 dPos){
@@ -51,6 +51,6 @@ void camera_moveRel(Camera *cam, const Vec3 dPos){
 }
 
 Vec3 vec3_onCamera(Vec3 v, const Camera *restrict cam){
-  v = vec3_sub(v, cam->pos);
+  v -= cam->pos;
   return vec3_rotate(v, cam->rot);
 }
