@@ -5,4 +5,4 @@ debug:
 	gcc -o debug $(SRC) -O0 -ggdb -Iinclude -lSDL3
 
 build:
-	gcc -flto -o 3d $(SRC) -O2 -g0 -Iinclude -DNDEBUG -static $(SLIB)
+	gcc -flto -o 3d $(SRC) -O2 -g0 -Iinclude -DNDEBUG -static $(SLIB) -mwindows -mavx -Wno-abi

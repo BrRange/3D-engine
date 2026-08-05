@@ -20,7 +20,7 @@ PixelColor pixelColor_new(u8 r, u8 g, u8 b, u8 a){
   return p;
 }
 
-void shader_pixel(Canvas *canv, Object *obj, Vec2 *UV, Vec3 *vertex){
+void shader_pixel(Canvas *canv, Object *obj, Vec2 *UV, Vec4 *vertex){
   i32 bounds[4];
   f32 cx = canv->w / 2, cy = canv->h / 2;
 
@@ -38,10 +38,10 @@ void shader_pixel(Canvas *canv, Object *obj, Vec2 *UV, Vec3 *vertex){
   bounds[2] = SDL_max(bounds[2], 0);
   bounds[3] = SDL_min(bounds[3], canv->h - 1);
 
-  const Vec3
-  xdiff = vec3_new(b.y - a.y, c.y - b.y, a.y - c.y),
-  ydiff = vec3_new(b.x - a.x, c.x - b.x, a.x - c.x),
-  depth = vec3_new(1.f / vertex[0][2], 1.f / vertex[1][2], 1.f / vertex[2][2]);
+  const Vec4
+  xdiff = vec4_new(b.y - a.y, c.y - b.y, a.y - c.y),
+  ydiff = vec4_new(b.x - a.x, c.x - b.x, a.x - c.x),
+  depth = vec4_new(1.f / vertex[0][2], 1.f / vertex[1][2], 1.f / vertex[2][2]);
 
   f32 iAB = (b.x * a.y - a.x * b.y) + xdiff[0] * bounds[0] - ydiff[0] * bounds[2];
   f32 iBC = (c.x * b.y - b.x * c.y) + xdiff[1] * bounds[0] - ydiff[1] * bounds[2];
@@ -60,9 +60,9 @@ void shader_pixel(Canvas *canv, Object *obj, Vec2 *UV, Vec3 *vertex){
       if(BC < 0.f) goto skip;
       if(CA < 0.f) goto skip;
       
-      Vec3 weight = vec3_new(BC * bary, CA * bary, AB * bary);
+      Vec4 weight = vec4_new(BC * bary, CA * bary, AB * bary);
       
-      f32 thisInv = vec3_dot(weight, depth);
+      f32 thisInv = vec4_dot(weight, depth);
       f32 thisZ = 1.f / thisInv;
       
       if(thisZ >= canv->zBuffer[idx]) goto skip;
@@ -104,6 +104,7 @@ Canvas canvas_new(SDL_Renderer *rend, u32 w, u32 h){
     .w = w,
     .h = h
   };
+  SDL_SetTextureScaleMode(canv.tex, SDL_SCALEMODE_NEAREST);
   return canv;
 }
 

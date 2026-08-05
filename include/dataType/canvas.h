@@ -13,7 +13,7 @@ typedef union Color{
   struct{
     f32 r, g, b;
   };
-  Vec3 asVec3;
+  Vec4 asVec3;
 } Color;
 
 Color color_new(f32 r, f32 g, f32 b);
@@ -34,7 +34,7 @@ typedef struct Canvas{
   i32 w, h;
 } Canvas;
 
-void shader_pixel(Canvas *canv, Object *obj, Vec2 *UV, Vec3 *vertex);
+void shader_pixel(Canvas *canv, Object *obj, Vec2 *UV, Vec4 *vertex);
 
 Canvas canvas_new(SDL_Renderer *rend, u32 w, u32 h);
 
