@@ -102,7 +102,10 @@ Canvas canvas_new(SDL_Renderer *rend, u32 w, u32 h){
     .zBuffer = SDL_malloc(sizeof *canv.zBuffer * w * h),
     .tex = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, w, h),
     .w = w,
-    .h = h
+    .h = h,
+    .vertex = darray_new(sizeof(Vec4[3])),
+    .uvCoord = darray_new(sizeof(Vec2[3])),
+    .uvSurface = darray_new(sizeof(SDL_Surface*))
   };
   SDL_SetTextureScaleMode(canv.tex, SDL_SCALEMODE_NEAREST);
   return canv;
@@ -114,6 +117,9 @@ void canvas_clear(Canvas *canv){
   len = (usz)canv->w * canv->h;
   SDL_memset4(canv->zBuffer, 0x7f800000, len);
   SDL_memset4(canv->pixel, 0, len);
+  canv->vertex.len = 0;
+  canv->uvCoord.len = 0;
+  canv->uvSurface.len = 0;
 }
 
 void canvas_render(Canvas *canv, SDL_Renderer *rend){

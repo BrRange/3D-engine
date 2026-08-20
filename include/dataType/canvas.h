@@ -3,6 +3,7 @@
 
 #include <SDL3/SDL_render.h>
 #include "dataType/vector.h"
+#include "dataType/darray.h"
 #include "entity/camera.h"
 
 typedef struct Object Object;
@@ -31,6 +32,7 @@ typedef struct Canvas{
   PixelColor *pixel;
   f32 *zBuffer;
   SDL_Texture *tex;
+  DArray vertex, uvCoord, uvSurface;
   i32 w, h;
 } Canvas;
 

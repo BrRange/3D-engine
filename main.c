@@ -4,6 +4,7 @@
 #include "src/dataType/gamectrl.c"
 #include "src/dataType/uniform.c"
 #include "src/dataType/canvas.c"
+#include "src/dataType/darray.c"
 #include "src/entity/camera.c"
 #include "src/entity/object.c"
 #include "src/entity/collider.c"
@@ -26,7 +27,7 @@ void tick(SDL_Renderer *rend, CommonData *data){
   Quaternion rot = quat_new(data->deltaT, vec4_new(0, 1, 0));
   //object_rotate(data->objs, rot);
 
-  f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? 1.2f : .5f;
+  f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? .05f : .01f;
 
   Vec2 mouseM = mouseH_getMovement(data->mouseH);
 
