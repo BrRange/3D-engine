@@ -20,79 +20,86 @@ PixelColor pixelColor_new(u8 r, u8 g, u8 b, u8 a){
   return p;
 }
 
-void shader_pixel(Canvas *canv, Object *obj, Vec2 *UV, Vec4 *vertex){
+void shader_pixel(Canvas *canv){
   i32 bounds[4];
   f32 cx = canv->w / 2, cy = canv->h / 2;
 
-  Vec2
-  a = {vertex[0][0] + cx, vertex[0][1] + cy},
-  b = {vertex[1][0] + cx, vertex[1][1] + cy},
-  c = {vertex[2][0] + cx, vertex[2][1] + cy};
+  for(u32 i = 0; i < canv->vertex.len; ++i){
+
+    Vec4 *vertex = darray_get(canv->vertex, i);
+    Vec2 *UV = darray_get(canv->uvCoord, i);
+    SDL_Surface *UVmap = *(SDL_Surface**)darray_get(canv->uvSurface, i);
+    
+    Vec2
+    a = {vertex[0][0] + cx, vertex[0][1] + cy},
+    b = {vertex[1][0] + cx, vertex[1][1] + cy},
+    c = {vertex[2][0] + cx, vertex[2][1] + cy};
   
-  if(vec2_edge(a, b, c) <= 0.f) return;
-  
-  vec2_bound(a, b, c, bounds);
-  
-  bounds[0] = SDL_max(bounds[0], 0);
-  bounds[1] = SDL_min(bounds[1], canv->w - 1);
-  bounds[2] = SDL_max(bounds[2], 0);
-  bounds[3] = SDL_min(bounds[3], canv->h - 1);
+    if(vec2_edge(a, b, c) <= 0.f) continue;
+    
+    vec2_bound(a, b, c, bounds);
+    
+    bounds[0] = SDL_max(bounds[0], 0);
+    bounds[1] = SDL_min(bounds[1], canv->w - 1);
+    bounds[2] = SDL_max(bounds[2], 0);
+    bounds[3] = SDL_min(bounds[3], canv->h - 1);
+    
+    const Vec4
+    xdiff = vec4_new(b.y - a.y, c.y - b.y, a.y - c.y),
+    ydiff = vec4_new(b.x - a.x, c.x - b.x, a.x - c.x),
+    depth = vec4_new(vertex[0][3], vertex[1][3], vertex[2][3]);
+    
+    f32 iAB = (b.x * a.y - a.x * b.y) + xdiff[0] * bounds[0] - ydiff[0] * bounds[2];
+    f32 iBC = (c.x * b.y - b.x * c.y) + xdiff[1] * bounds[0] - ydiff[1] * bounds[2];
+    f32 iCA = (a.x * c.y - c.x * a.y) + xdiff[2] * bounds[0] - ydiff[2] * bounds[2];
+    
+    f32 bary = 1.f / (iAB + iBC + iCA);
+    
+    for(i32 row = bounds[2]; row < bounds[3]; ++row){
+      f32 AB = iAB;
+      f32 BC = iBC;
+      f32 CA = iCA;
+      for(i32 col = bounds[0]; col < bounds[1]; ++col){
+        usz idx = (usz)row * canv->w + col;
+        
+        if(AB < 0.f) goto skip;
+        if(BC < 0.f) goto skip;
+        if(CA < 0.f) goto skip;
+        
+        Vec4 weight = vec4_new(BC * bary, CA * bary, AB * bary);
+        
+        f32 thisInv = vec4_dot(weight, depth);
+        f32 thisZ = 1.f / thisInv;
+        
+        if(thisZ >= canv->zBuffer[idx]) goto skip;
+        
+        f32 W[3] = {
+          vertex[0][3],
+          vertex[1][3],
+          vertex[2][3]
+        };
+        
+        Vec2 pixel_uv = vec2_mul(UV[0], weight[0] * W[0]);
+        pixel_uv = vec2_add(pixel_uv, vec2_mul(UV[1], weight[1] * W[1]));
+        pixel_uv = vec2_add(pixel_uv, vec2_mul(UV[2], weight[2] * W[2]));
+        pixel_uv = vec2_mul(pixel_uv, thisZ);
+        Color color;
+        SDL_Rect UVsize;
+        SDL_GetSurfaceClipRect(UVmap, &UVsize);
+        SDL_ReadSurfacePixelFloat(UVmap, pixel_uv.x * UVsize.w, pixel_uv.y * UVsize.h, &color.r, &color.g, &color.b, NULL);
+        PixelColor pcolor = pixelColor_new(255 * color.r, 255 * color.g, 255 *color.b, 255);
+        canv->pixel[idx] = pcolor;
+        canv->zBuffer[idx] = thisZ;
 
-  const Vec4
-  xdiff = vec4_new(b.y - a.y, c.y - b.y, a.y - c.y),
-  ydiff = vec4_new(b.x - a.x, c.x - b.x, a.x - c.x),
-  depth = vec4_new(1.f / vertex[0][2], 1.f / vertex[1][2], 1.f / vertex[2][2]);
-
-  f32 iAB = (b.x * a.y - a.x * b.y) + xdiff[0] * bounds[0] - ydiff[0] * bounds[2];
-  f32 iBC = (c.x * b.y - b.x * c.y) + xdiff[1] * bounds[0] - ydiff[1] * bounds[2];
-  f32 iCA = (a.x * c.y - c.x * a.y) + xdiff[2] * bounds[0] - ydiff[2] * bounds[2];
-
-  f32 bary = 1.f / (iAB + iBC + iCA);
-  
-  for(i32 row = bounds[2]; row < bounds[3]; ++row){
-    f32 AB = iAB;
-    f32 BC = iBC;
-    f32 CA = iCA;
-    for(i32 col = bounds[0]; col < bounds[1]; ++col){
-      usz idx = (usz)row * canv->w + col;
-
-      if(AB < 0.f) goto skip;
-      if(BC < 0.f) goto skip;
-      if(CA < 0.f) goto skip;
-      
-      Vec4 weight = vec4_new(BC * bary, CA * bary, AB * bary);
-      
-      f32 thisInv = vec4_dot(weight, depth);
-      f32 thisZ = 1.f / thisInv;
-      
-      if(thisZ >= canv->zBuffer[idx]) goto skip;
-
-      f32 W[3] = {
-        1.f / vertex[0][2],
-        1.f / vertex[1][2],
-        1.f / vertex[2][2]
-      };
-
-      Vec2 pixel_uv = vec2_mul(UV[0], weight[0] * W[0]);
-      pixel_uv = vec2_add(pixel_uv, vec2_mul(UV[1], weight[1] * W[1]));
-      pixel_uv = vec2_add(pixel_uv, vec2_mul(UV[2], weight[2] * W[2]));
-      pixel_uv = vec2_mul(pixel_uv, thisZ);
-      Color color;
-      SDL_Rect UVsize;
-      SDL_GetSurfaceClipRect(obj->UVmap, &UVsize);
-      SDL_ReadSurfacePixelFloat(obj->UVmap, pixel_uv.x * UVsize.w, pixel_uv.y * UVsize.h, &color.r, &color.g, &color.b, NULL);
-      PixelColor pcolor = pixelColor_new(255 * color.r, 255 * color.g, 255 *color.b, 255);
-      canv->pixel[idx] = pcolor;
-      canv->zBuffer[idx] = thisZ;
-
-      skip:
-      AB += xdiff[0];
-      BC += xdiff[1];
-      CA += xdiff[2];
+        skip:
+        AB += xdiff[0];
+        BC += xdiff[1];
+        CA += xdiff[2];
+      }
+      iAB -= ydiff[0];
+      iBC -= ydiff[1];
+      iCA -= ydiff[2];
     }
-    iAB -= ydiff[0];
-    iBC -= ydiff[1];
-    iCA -= ydiff[2];
   }
 }
 
@@ -123,11 +130,15 @@ void canvas_clear(Canvas *canv){
 }
 
 void canvas_render(Canvas *canv, SDL_Renderer *rend){
+  shader_pixel(canv);
   SDL_UnlockTexture(canv->tex);
   SDL_RenderTexture(rend, canv->tex, NULL, NULL);
 }
 
 void canvas_destroy(Canvas *canv){
+  darray_destroy(&canv->vertex);
+  darray_destroy(&canv->uvCoord);
+  darray_destroy(&canv->uvSurface);
   SDL_free(canv->zBuffer);
   SDL_DestroyTexture(canv->tex);
 }

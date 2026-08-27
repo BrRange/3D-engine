@@ -8,4 +8,4 @@ build:
 	gcc -flto -o 3d $(SRC) -O2 -g0 -Iinclude -DNDEBUG -static $(SLIB) -mavx -Wno-abi -fprofile-generate
 
 release:
-	gcc -flto -o 3d $(SRC) -O2 -g0 -Iinclude -DNDEBUG -static $(SLIB) -mavx -Wno-abi -fprofile-use
+	gcc -flto -o 3d $(SRC) -O2 -g0 -Iinclude -DNDEBUG -static $(SLIB) -mavx -Wno-abi -fprofile-use -mwindows

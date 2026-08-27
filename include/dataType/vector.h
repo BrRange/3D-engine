@@ -7,7 +7,7 @@ typedef f32 __attribute__((vector_size(16))) Vec4;
 
 Vec4 vec4_new(f32 x, f32 y, f32 z);
 
-Vec4 vec4_getClip(const Vec4 clip, const Vec4 unclip, f32 z);
+f32 vec4_getClip(const Vec4 clip, const Vec4 unclip, f32 z);
 
 /* Vec3 operators */
 

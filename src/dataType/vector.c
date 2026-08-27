@@ -6,13 +6,12 @@ Vec4 vec4_new(f32 x, f32 y, f32 z){
   return (Vec4){x, y, z};
 }
 
-Vec4 vec4_getClip(const Vec4 clip, const Vec4 unclip, f32 z){
-  Vec4 v = {0, 0, z};
-  Vec4 dv = unclip - clip;
-  if(dv[2] == 0.f) dv[2] = 1e-6f;
-  v[0] = dv[0] / dv[2] * (z - clip[2]) + clip[0];
-  v[1] = dv[1] / dv[2] * (z - clip[2]) + clip[1];
-  return v;
+f32 vec4_getClip(const Vec4 clip, const Vec4 unclip, f32 z){
+  f32
+  in = unclip[2] - z,
+  out = clip[2] - z;
+  if(in - out == 0.f) return in / 1e-6f;
+  return in / (in - out);
 }
 
 f32 vec4_dot(const Vec4 a, const Vec4 b){

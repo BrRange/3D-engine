@@ -36,7 +36,7 @@ typedef struct Canvas{
   i32 w, h;
 } Canvas;
 
-void shader_pixel(Canvas *canv, Object *obj, Vec2 *UV, Vec4 *vertex);
+void shader_pixel(Canvas *canv);
 
 Canvas canvas_new(SDL_Renderer *rend, u32 w, u32 h);
 
