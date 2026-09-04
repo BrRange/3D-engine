@@ -7,7 +7,7 @@
 #include "entity/camera.h"
 
 typedef struct Object Object;
-typedef struct Polygon Polygon;
+typedef u32 Polygon[3];
 
 typedef union Color{
   f32 color[3];
@@ -32,7 +32,7 @@ typedef struct Canvas{
   PixelColor *pixel;
   f32 *zBuffer;
   SDL_Texture *tex;
-  DArray vertex, uvCoord, uvSurface;
+  DArray vertices, uvSurfaces;
   i32 w, h;
 } Canvas;
 

@@ -24,16 +24,15 @@ void shader_pixel(Canvas *canv){
   i32 bounds[4];
   f32 cx = canv->w / 2, cy = canv->h / 2;
 
-  for(u32 i = 0; i < canv->vertex.len; ++i){
+  for(u32 i = 0; i < canv->vertices.len; ++i){
 
-    Vec4 *vertex = darray_get(canv->vertex, i);
-    Vec2 *UV = darray_get(canv->uvCoord, i);
-    SDL_Surface *UVmap = *(SDL_Surface**)darray_get(canv->uvSurface, i);
+    Vertex *vertex = darray_get(canv->vertices, i);
+    SDL_Surface *UVmap = *(SDL_Surface**)darray_get(canv->uvSurfaces, i);
     
     Vec2
-    a = {vertex[0][0] + cx, vertex[0][1] + cy},
-    b = {vertex[1][0] + cx, vertex[1][1] + cy},
-    c = {vertex[2][0] + cx, vertex[2][1] + cy};
+    a = {vertex[0].coord[0] + cx, vertex[0].coord[1] + cy},
+    b = {vertex[1].coord[0] + cx, vertex[1].coord[1] + cy},
+    c = {vertex[2].coord[0] + cx, vertex[2].coord[1] + cy};
   
     if(vec2_edge(a, b, c) <= 0.f) continue;
     
@@ -47,13 +46,16 @@ void shader_pixel(Canvas *canv){
     const Vec4
     xdiff = vec4_new(b.y - a.y, c.y - b.y, a.y - c.y),
     ydiff = vec4_new(b.x - a.x, c.x - b.x, a.x - c.x),
-    depth = vec4_new(vertex[0][3], vertex[1][3], vertex[2][3]);
+    depth = vec4_new(vertex[0].coord[3], vertex[1].coord[3], vertex[2].coord[3]);
     
     f32 iAB = (b.x * a.y - a.x * b.y) + xdiff[0] * bounds[0] - ydiff[0] * bounds[2];
     f32 iBC = (c.x * b.y - b.x * c.y) + xdiff[1] * bounds[0] - ydiff[1] * bounds[2];
     f32 iCA = (a.x * c.y - c.x * a.y) + xdiff[2] * bounds[0] - ydiff[2] * bounds[2];
     
     f32 bary = 1.f / (iAB + iBC + iCA);
+
+    SDL_Rect UVsize;
+    SDL_GetSurfaceClipRect(UVmap, &UVsize);
     
     for(i32 row = bounds[2]; row < bounds[3]; ++row){
       f32 AB = iAB;
@@ -73,21 +75,29 @@ void shader_pixel(Canvas *canv){
         
         if(thisZ >= canv->zBuffer[idx]) goto skip;
         
-        f32 W[3] = {
-          vertex[0][3],
-          vertex[1][3],
-          vertex[2][3]
-        };
+        Vec4 W = vec4_new(
+          vertex[0].coord[3],
+          vertex[1].coord[3],
+          vertex[2].coord[3]
+        );
+
+        W *= weight;
         
-        Vec2 pixel_uv = vec2_mul(UV[0], weight[0] * W[0]);
-        pixel_uv = vec2_add(pixel_uv, vec2_mul(UV[1], weight[1] * W[1]));
-        pixel_uv = vec2_add(pixel_uv, vec2_mul(UV[2], weight[2] * W[2]));
+        Vec4 pixel_normal = vertex[0].normal * W[0] + vertex[1].normal * W[1] + vertex[2].normal * W[2];
+        pixel_normal *= thisZ;
+        
+        const Vec4 light = vec4_normal(vec4_new(1, -1, 1));
+        
+        f32 incidence = 255 * vec4_dot(light, pixel_normal);
+        incidence = SDL_clamp(incidence, 32, 255);
+        
+        Vec2 pixel_uv = vec2_mul(vertex[0].uv, W[0]);
+        pixel_uv = vec2_add(pixel_uv, vec2_mul(vertex[1].uv, W[1]));
+        pixel_uv = vec2_add(pixel_uv, vec2_mul(vertex[2].uv, W[2]));
         pixel_uv = vec2_mul(pixel_uv, thisZ);
         Color color;
-        SDL_Rect UVsize;
-        SDL_GetSurfaceClipRect(UVmap, &UVsize);
         SDL_ReadSurfacePixelFloat(UVmap, pixel_uv.x * UVsize.w, pixel_uv.y * UVsize.h, &color.r, &color.g, &color.b, NULL);
-        PixelColor pcolor = pixelColor_new(255 * color.r, 255 * color.g, 255 *color.b, 255);
+        PixelColor pcolor = pixelColor_new(incidence * color.r, incidence * color.g, incidence *color.b, 255);
         canv->pixel[idx] = pcolor;
         canv->zBuffer[idx] = thisZ;
 
@@ -110,9 +120,8 @@ Canvas canvas_new(SDL_Renderer *rend, u32 w, u32 h){
     .tex = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, w, h),
     .w = w,
     .h = h,
-    .vertex = darray_new(sizeof(Vec4[3])),
-    .uvCoord = darray_new(sizeof(Vec2[3])),
-    .uvSurface = darray_new(sizeof(SDL_Surface*))
+    .vertices = darray_new(sizeof(Vertex[3])),
+    .uvSurfaces = darray_new(sizeof(SDL_Surface*))
   };
   SDL_SetTextureScaleMode(canv.tex, SDL_SCALEMODE_NEAREST);
   return canv;
@@ -124,9 +133,8 @@ void canvas_clear(Canvas *canv){
   len = (usz)canv->w * canv->h;
   SDL_memset4(canv->zBuffer, 0x7f800000, len);
   SDL_memset4(canv->pixel, 0, len);
-  canv->vertex.len = 0;
-  canv->uvCoord.len = 0;
-  canv->uvSurface.len = 0;
+  canv->vertices.len = 0;
+  canv->uvSurfaces.len = 0;
 }
 
 void canvas_render(Canvas *canv, SDL_Renderer *rend){
@@ -136,9 +144,8 @@ void canvas_render(Canvas *canv, SDL_Renderer *rend){
 }
 
 void canvas_destroy(Canvas *canv){
-  darray_destroy(&canv->vertex);
-  darray_destroy(&canv->uvCoord);
-  darray_destroy(&canv->uvSurface);
+  darray_destroy(&canv->vertices);
+  darray_destroy(&canv->uvSurfaces);
   SDL_free(canv->zBuffer);
   SDL_DestroyTexture(canv->tex);
 }
