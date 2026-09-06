@@ -8,25 +8,25 @@ void collider_setResponse(Collider *coll, CollisionType type, f32 coef){
   coll->coef = coef;
 }
 
-Vec3 collision_getResponse(CollisionInfo *info, Vec3 displacement, f32 dt){
+Vec4 collision_getResponse(CollisionInfo *info, Vec4 displacement, f32 dt){
   switch(info->type){
     case CollisionType_Phase:{} break;
     case CollisionType_Slide:{
-      Vec3 hover = vec3_mul(info->normal, info->distance), norm = info->normal;
-      f32 dragHover = vec3_dot(hover, norm), dragSpeed = vec3_dot(displacement, norm);
-      displacement = vec3_add(displacement, hover);
-      displacement = vec3_sub(displacement, vec3_mul(norm, dragHover + dragSpeed));
-      displacement = vec3_mul(displacement, SDL_max(0.f, 1.f - info->coef * dt));
+      Vec4 hover = info->normal * info->distance, norm = info->normal;
+      f32 dragHover = vec4_dot(hover, norm), dragSpeed = vec4_dot(displacement, norm);
+      displacement += hover;
+      displacement -= norm * (dragHover + dragSpeed);
+      displacement *= SDL_max(0.f, 1.f - info->coef * dt);
     } break;
     case CollisionType_Bounce:{
-      f32 mag = vec3_mag(displacement);
-      Vec3 scaled = vec3_mul(info->normal, mag * info->coef);
-      displacement = vec3_sub(displacement, scaled);
+      f32 mag = vec4_mag(displacement);
+      Vec4 scaled = info->normal * (mag * info->coef);
+      displacement -= scaled;
     } break;
     case CollisionType_Sink:{
-      f32 mag = vec3_mag(displacement);
-      Vec3 scaled = vec3_mul(info->normal, mag * info->coef * dt);
-      displacement = vec3_sub(displacement, scaled);
+      f32 mag = vec4_mag(displacement);
+      Vec4 scaled = info->normal * (mag * info->coef * dt);
+      displacement -= scaled;
     } break;
   }
   return displacement;
@@ -52,7 +52,7 @@ void collision_defineType(CollisionInfo *info, Collider *a, Collider *b){
   }
 }
 
-Collider_Sphere collider_newSphere(Object *anchor, Vec3 offset, f32 radius){
+Collider_Sphere collider_newSphere(Object *anchor, Vec4 offset, f32 radius){
   Collider_Sphere sphere = {
     .base = {
       .anchor = anchor,
@@ -64,7 +64,7 @@ Collider_Sphere collider_newSphere(Object *anchor, Vec3 offset, f32 radius){
   return sphere;
 }
 
-Collider_Pill collider_newPill(Object *anchor, Vec3 offset, Vec3 extension, f32 radius){
+Collider_Pill collider_newPill(Object *anchor, Vec4 offset, Vec4 extension, f32 radius){
   Collider_Pill pill = {
     .base = {
       .anchor = anchor,
@@ -77,7 +77,7 @@ Collider_Pill collider_newPill(Object *anchor, Vec3 offset, Vec3 extension, f32 
   return pill;
 }
 
-Collider_Beam collider_newBeam(Object *anchor, Vec3 offset, Vec3 dir, f32 maxDist){
+Collider_Beam collider_newBeam(Object *anchor, Vec4 offset, Vec4 dir, f32 maxDist){
   Collider_Beam beam = {
     .base = {
       .anchor = anchor,
@@ -90,7 +90,7 @@ Collider_Beam collider_newBeam(Object *anchor, Vec3 offset, Vec3 dir, f32 maxDis
   return beam;
 }
 
-Collider_Box collider_newBox(Object *anchor, const Vec3 offset, const Vec3 extension, const Vec3 normal){
+Collider_Box collider_newBox(Object *anchor, const Vec4 offset, const Vec4 extension, const Vec4 normal){
   Collider_Box box = {
     .base = {
       .anchor = anchor,
@@ -165,23 +165,23 @@ bool collider_collide(Collider *a, Collider *b, CollisionInfo *info){
 }
 
 bool collider_sphere_sphere(Collider_Sphere *a, Collider_Sphere *b, CollisionInfo *info){
-  Vec3 aPos, bPos;
+  Vec4 aPos, bPos;
 
-  aPos = vec3_rotate(a->base.offset, a->base.anchor->rot);
-  aPos = vec3_add(a->base.anchor->pos, aPos);
+  aPos = vec4_rotate(a->base.offset, a->base.anchor->rot);
+  aPos += a->base.anchor->pos;
 
-  bPos = vec3_rotate(b->base.offset, b->base.anchor->rot);
-  bPos = vec3_add(b->base.anchor->pos, bPos);
+  bPos = vec4_rotate(b->base.offset, b->base.anchor->rot);
+  bPos += b->base.anchor->pos;
 
-  Vec3 diff = vec3_sub(bPos, aPos);
+  Vec4 diff = bPos - aPos;
   f32 radius = a->radius + b->radius;
-  f32 sqrDist = vec3_dot(diff, diff);
+  f32 sqrDist = vec4_dot(diff, diff);
 
   if(info){
     info->source = (Collider*)a;
     info->dest = (Collider*)b;
-    info->normal = vec3_normal(diff);
-    info->distance = SDL_sqrtf(sqrDist);
+    info->normal = vec4_normal(diff);
+    info->distance = sqrtf(sqrDist);
     info->penetration = info->distance - radius;
   }
 
@@ -189,62 +189,62 @@ bool collider_sphere_sphere(Collider_Sphere *a, Collider_Sphere *b, CollisionInf
 }
 
 bool collider_sphere_pill(Collider_Sphere *sphere, Collider_Pill *pill, CollisionInfo *info){
-  Vec3 spherePos, pillPos[2];
+  Vec4 spherePos, pillPos[2];
   
-  spherePos = vec3_add(sphere->base.anchor->pos, sphere->base.offset);
-  spherePos = vec3_rotate(spherePos, sphere->base.anchor->rot);
+  spherePos = sphere->base.anchor->pos + sphere->base.offset;
+  spherePos = vec4_rotate(spherePos, sphere->base.anchor->rot);
 
-  pillPos[0] = vec3_rotate(pill->base.offset, pill->base.anchor->rot);
-  pillPos[1] = vec3_rotate(pill->extension, pill->base.anchor->rot);
-  pillPos[0] = vec3_add(pill->base.anchor->pos, pillPos[0]);
-  pillPos[1] = vec3_add(pill->base.anchor->pos, pillPos[1]);
+  pillPos[0] = vec4_rotate(pill->base.offset, pill->base.anchor->rot);
+  pillPos[1] = vec4_rotate(pill->extension, pill->base.anchor->rot);
+  pillPos[0] += pill->base.anchor->pos;
+  pillPos[1] += pill->base.anchor->pos;
   
-  Vec3 line = vec3_sub(pillPos[0], pillPos[1]);
-  Vec3 proj = vec3_sub(pillPos[0], spherePos);
+  Vec4 line = pillPos[0] - pillPos[1];
+  Vec4 proj = pillPos[0] - spherePos;
 
-  f32 radius = vec3_dot(line, proj) / vec3_dot(line, line);
+  f32 radius = vec4_dot(line, proj) / vec4_dot(line, line);
   radius = SDL_clamp(radius, 0.f, 1.f);
-  line = vec3_add(vec3_mul(pillPos[0], 1.f - radius), vec3_mul(pillPos[1], radius));
+  line = vec4_mix(pillPos[0], pillPos[1], radius);
 
-  proj = vec3_sub(line, spherePos);
+  proj = line - spherePos;
   radius = sphere->radius + pill->radius;
 
-  f32 sqrDist = vec3_dot(proj, proj);
+  f32 sqrDist = vec4_dot(proj, proj);
 
   if(info){
     info->source = (Collider*)sphere;
     info->dest = (Collider*)pill;
-    info->normal = vec3_normal(proj);
-    info->distance = SDL_sqrtf(sqrDist);
+    info->normal = vec4_normal(proj);
+    info->distance = sqrtf(sqrDist);
     info->penetration = info->distance - radius;
   }
 
-  return vec3_dot(proj, proj) < radius * radius;
+  return sqrDist < radius * radius;
 }
 
 bool collider_sphere_beam(Collider_Sphere *sphere, Collider_Beam *beam, CollisionInfo *info){
-  Vec3 spherePos, beamPos;
+  Vec4 spherePos, beamPos;
 
-  spherePos = vec3_rotate(sphere->base.offset, sphere->base.anchor->rot);
-  spherePos = vec3_add(sphere->base.anchor->pos, spherePos);
+  spherePos = vec4_rotate(sphere->base.offset, sphere->base.anchor->rot);
+  spherePos += sphere->base.anchor->pos;
 
-  beamPos = vec3_rotate(beam->dir, beam->base.anchor->rot);
-  beamPos = vec3_add(beam->base.anchor->pos, beamPos);
-  beamPos = vec3_sub(beamPos, spherePos);
+  beamPos = vec4_rotate(beam->dir, beam->base.anchor->rot);
+  beamPos += beam->base.anchor->pos;
+  beamPos -= spherePos;
 
-  f32 angularDist, linearDist = vec3_dot(beamPos, beamPos), radius = sphere->radius;
+  f32 angularDist, linearDist = vec4_dot(beamPos, beamPos), radius = sphere->radius;
   
   if(info){
     info->source = (Collider*)sphere;
     info->dest = (Collider*)beam;
     info->normal = beamPos;
-    info->distance = SDL_sqrtf(linearDist);
+    info->distance = sqrtf(linearDist);
     info->penetration = info->distance - radius;
   }
 
   radius *= radius;
   if(linearDist < radius) return true;
-  angularDist = vec3_dot(beamPos, beam->dir);
+  angularDist = vec4_dot(beamPos, beam->dir);
 
   f32 parallelism = angularDist / linearDist;
   if(parallelism >= 0) return false;
@@ -253,26 +253,26 @@ bool collider_sphere_beam(Collider_Sphere *sphere, Collider_Beam *beam, Collisio
 }
 
 bool collider_sphere_box(Collider_Sphere *sphere, Collider_Box *box, CollisionInfo *info){
-  Vec3 spherePos = vec3_rotate(sphere->base.offset, sphere->base.anchor->rot);
-  spherePos = vec3_add(spherePos, sphere->base.anchor->pos);
+  Vec4 spherePos = vec4_rotate(sphere->base.offset, sphere->base.anchor->rot);
+  spherePos += sphere->base.anchor->pos;
 
-  Vec3 boxCenter = vec3_add(box->base.offset, box->base.anchor->pos);
-  Vec3 boxExtent = box->extension;
+  Vec4 boxCenter = box->base.offset + box->base.anchor->pos;
+  Vec4 boxExtent = box->extension;
 
-  spherePos = vec3_sub(spherePos, boxCenter);
-  spherePos = vec3_rotate(spherePos, quat_conjugate(box->base.anchor->rot));
+  spherePos -= boxCenter;
+  spherePos = vec4_rotate(spherePos, quat_conjugate(box->base.anchor->rot));
   f32 dx = SDL_clamp(spherePos[0], -boxExtent[0], boxExtent[0]);
   f32 dy = SDL_clamp(spherePos[1], -boxExtent[1], boxExtent[1]);
   f32 dz = SDL_clamp(spherePos[2], -boxExtent[2], boxExtent[2]);
 
-  Vec3 diff = vec3_sub(vec3_new(dx, dy, dz), spherePos);
-  f32 dist = SDL_sqrtf(vec3_dot(diff, diff));
+  Vec4 diff = vec4_new(dx, dy, dz) - spherePos;
+  f32 dist = vec4_mag(diff);
 
   if(info){
     info->source = (Collider*)sphere;
     info->dest = (Collider*)box;
-    if(dist == 0.f) info->normal = vec3_rotate(box->normal, box->base.anchor->rot);
-    else info->normal = vec3_rotate(vec3_normal(diff), box->base.anchor->rot);
+    if(dist == 0.f) info->normal = vec4_rotate(box->normal, box->base.anchor->rot);
+    else info->normal = vec4_rotate(vec4_normal(diff), box->base.anchor->rot);
     info->distance = dist;
     info->penetration = dist - sphere->radius;
   }

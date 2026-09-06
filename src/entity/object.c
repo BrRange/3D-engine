@@ -1,27 +1,36 @@
 #include "entity/object.h"
+#include "dataType/uniform.h"
 
-Polygon polygon_new(u16 idx0, u16 idx1, u16 idx2, u16 colorIndex){
-  Polygon p = {
-    .idx = {idx0, idx1, idx2},
-    .colorIndex = colorIndex
+Vertex vertex_new(Vec4 coord, Vec4 normal, Vec2 uv){
+  Vertex v = {
+    .coord = coord,
+    .normal = normal,
+    .uv = uv
   };
-  return p;
+  return v;
 }
 
-Model model(Vec3 *vert, size_t vertCount, Polygon *polygon, size_t polyCount){
+Vertex vertex_mix(const Vertex a, const Vertex b, f32 t){
+  Vertex v;
+  v.coord = vec4_mix(a.coord, b.coord, t);
+  v.normal = vec4_mix(a.normal, b.normal, t);
+  v.uv = vec2_mix(a.uv, b.uv, t);
+  return v;
+}
+
+Model model_new(Vertex *vert, Polygon *polygon, size_t polyCount){
   Model mdl = {
-    .vec3 = vert,
-    .vec3Count = vertCount,
+    .vert = vert,
     .polygon = polygon,
     .polyCount = polyCount
   };
   return mdl;
 }
 
-Object object_new(Model *model, Color *palette, const Vec3 pos, f32 scale){
+Object object_new(Model *model, SDL_Surface *UVmap, const Vec4 pos, f32 scale){
   Object obj = {
     .model = model,
-    .palette = palette,
+    .UVmap = UVmap,
     .pos = pos,
     .scale = scale,
     .rot = {1}
@@ -33,111 +42,119 @@ void object_rotate(Object *obj, Quaternion quat){
   obj->rot = quat_compose(obj->rot, quat);
 }
 
-void object_move(Object *obj, const Vec3 dv){
+void object_move(Object *obj, const Vec4 dv){
   obj->pos += dv;
 }
 
-const Vec3 vec3_id = {1, 1, 1};
+const Vec4 vec4_id = {1, 1, 1};
 
-void object_render(Object *obj, Canvas *canv, Camera *cam, LightSource_Packed *sources){
-  Vec3 *vert = obj->model->vec3, clipped[3], unclipped[3];
+void object_render(Object *obj, Canvas *canv, Camera *cam){
+  Vertex *vert = obj->model->vert, clipped[3], unclipped[3];
   u8 clipCount, unclipCount;
 
   for(size_t i = 0; i < obj->model->polyCount; ++i){
     clipCount = unclipCount = 0;
-    Polygon polygon = obj->model->polygon[i];
 
-    Vec3 vertex[3] = {polygon.idx[0][vert], polygon.idx[1][vert], polygon.idx[2][vert]};
+    u32 *poly = obj->model->polygon[i];
 
-    vertex[0] = vec3_rotate(vertex[0], obj->rot);
-    vertex[1] = vec3_rotate(vertex[1], obj->rot);
-    vertex[2] = vec3_rotate(vertex[2], obj->rot);
+    Vertex vertex[4] = {obj->model->vert[poly[0]], obj->model->vert[poly[1]], obj->model->vert[poly[2]]};
 
-    vertex[0] = vec3_mul(vertex[0], obj->scale);
-    vertex[1] = vec3_mul(vertex[1], obj->scale);
-    vertex[2] = vec3_mul(vertex[2], obj->scale);
+    vertex[0].coord = vec4_rotate(vertex[0].coord, obj->rot);
+    vertex[1].coord = vec4_rotate(vertex[1].coord, obj->rot);
+    vertex[2].coord = vec4_rotate(vertex[2].coord, obj->rot);
 
-    vertex[0] = vec3_add(vertex[0], obj->pos);
-    vertex[1] = vec3_add(vertex[1], obj->pos);
-    vertex[2] = vec3_add(vertex[2], obj->pos);
+    vertex[0].normal = vec4_rotate(vertex[0].normal, obj->rot);
+    vertex[1].normal = vec4_rotate(vertex[1].normal, obj->rot);
+    vertex[2].normal = vec4_rotate(vertex[2].normal, obj->rot);
 
-    Vec3 lightPower = lightSource_iluminate(&sources[0].lightSource, vertex);
-    lightPower[0] = SDL_clamp(lightPower[0], 0.f, 1.f);
-    lightPower[1] = SDL_clamp(lightPower[1], 0.f, 1.f);
-    lightPower[2] = SDL_clamp(lightPower[2], 0.f, 1.f);
-    lightPower = vec3_add(lightPower, lightSource_iluminate(&sources[1].lightSource, vertex));
-    lightPower[0] = SDL_clamp(lightPower[0], 0.f, 1.f);
-    lightPower[1] = SDL_clamp(lightPower[1], 0.f, 1.f);
-    lightPower[2] = SDL_clamp(lightPower[2], 0.f, 1.f);
+    vertex[0].coord *= obj->scale;
+    vertex[1].coord *= obj->scale;
+    vertex[2].coord *= obj->scale;
 
-    Vec3 proj[4] = {
-      vec3_onCamera(vertex[0], cam),
-      vec3_onCamera(vertex[1], cam),
-      vec3_onCamera(vertex[2], cam)
-    };
+    vertex[0].coord += obj->pos;
+    vertex[1].coord += obj->pos;
+    vertex[2].coord += obj->pos;
 
-    f32 aspecRatio = canv->w / canv->h;
+    vertex[0].coord = vec4_onCamera(vertex[0].coord, cam);
+    vertex[1].coord = vec4_onCamera(vertex[1].coord, cam);
+    vertex[2].coord = vec4_onCamera(vertex[2].coord, cam);
 
-    proj[0][0] *= cam->fieldView * aspecRatio * 500.f, proj[0][1] *= cam->fieldView / aspecRatio * 500.f;
-    proj[1][0] *= cam->fieldView * aspecRatio * 500.f, proj[1][1] *= cam->fieldView / aspecRatio * 500.f;
-    proj[2][0] *= cam->fieldView * aspecRatio * 500.f, proj[2][1] *= cam->fieldView / aspecRatio * 500.f;
+    vertex[0].coord = vec4_compose(uniform.perpective, vertex[0].coord);
+    vertex[1].coord = vec4_compose(uniform.perpective, vertex[1].coord);
+    vertex[2].coord = vec4_compose(uniform.perpective, vertex[2].coord);
 
-    Color color = obj->palette[polygon.colorIndex];
-    color.asVec3 = vec3_piecewise(color.asVec3, lightPower);
+    for(int i = 0; i < 3; ++i){
+      vertex[i].coord[0] *= canv->w;
+      vertex[i].coord[1] *= canv->h;
+      vertex[i].coord[3] = 1.f;
+    }
 
     i32 lastClipped, lastUnclipped;
 
     for(i32 j = 0; j < 3; ++j)
-    if(proj[j][2] <= cam->nearPlane){
-      clipped[clipCount++] = proj[j];
+    if(vertex[j].coord[2] <= cam->nearPlane){
+      clipped[clipCount] = vertex[j];
+      ++clipCount;
       lastClipped = j;
     } else{
-      unclipped[unclipCount++] = proj[j];
+      unclipped[unclipCount] = vertex[j];
+      ++unclipCount;
       lastUnclipped = j;
     }
 
     bool extraVec3 = false;
+
     switch(clipCount){
-    case 0:{
-      for(u8 j = 0; j < 3; ++j)
-      proj[j][0] /= proj[j][2], proj[j][1] /= proj[j][2];
-    } break;
-    case 1:{
-      extraVec3 = true;
-      if(lastClipped == 1){
-        proj[0] = unclipped[1];
-        proj[1] = unclipped[0];
-        proj[2] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
-        proj[3] = vec3_getClip(clipped[0], unclipped[1], cam->nearPlane);
-      } else{
-        proj[0] = unclipped[0];
-        proj[1] = unclipped[1];
-        proj[2] = vec3_getClip(clipped[0], unclipped[1], cam->nearPlane);
-        proj[3] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
+      case 0:{
+        for(u8 j = 0; j < 3; ++j) vertex[j].coord /= vertex[j].coord[2];
+      } break;
+
+      case 1:{
+        extraVec3 = true;
+        f32 coef0 = vec4_getClip(clipped[0].coord, unclipped[0].coord, cam->nearPlane),
+        coef1 = vec4_getClip(clipped[0].coord, unclipped[1].coord, cam->nearPlane);
+        if(lastClipped == 1){
+          vertex[1] = unclipped[0];
+          vertex[0] = unclipped[1];
+          vertex[2] = vertex_mix(unclipped[0], clipped[0], coef0);
+          vertex[3] = vertex_mix(unclipped[1], clipped[0], coef1);
+        } else{
+          vertex[0] = unclipped[0];
+          vertex[1] = unclipped[1];
+          vertex[2] = vertex_mix(unclipped[1], clipped[0], coef1);
+          vertex[3] = vertex_mix(unclipped[0], clipped[0], coef0);
+        }
+        for(u8 j = 0; j < 4; ++j)
+        vertex[j].coord /= vertex[j].coord[2];
+      } break;
+
+      case 2:{
+        vertex[0] = unclipped[0];
+        f32 coef0 = vec4_getClip(clipped[0].coord, unclipped[0].coord, cam->nearPlane),
+        coef1 = vec4_getClip(clipped[1].coord, unclipped[0].coord, cam->nearPlane);
+        if(lastUnclipped == 1){
+          vertex[1] = vertex_mix(unclipped[0], clipped[1], coef1);
+          vertex[2] = vertex_mix(unclipped[0], clipped[0], coef0);
+        } else{
+          vertex[1] = vertex_mix(unclipped[0], clipped[0], coef0);
+          vertex[2] = vertex_mix(unclipped[0], clipped[1], coef1);
+        }
+        for(u8 j = 0; j < 3; ++j)
+        vertex[j].coord /= vertex[j].coord[2];
+      } break;
+
+      default:{
+        continue;
       }
-      proj[0][0] /= proj[0][2], proj[0][1] /= proj[0][2];
-      proj[1][0] /= proj[1][2], proj[1][1] /= proj[1][2];
-    } break;
-    case 2:{
-      proj[0] = unclipped[0];
-      if(lastUnclipped == 1){
-        proj[1] = vec3_getClip(clipped[1], unclipped[0], cam->nearPlane);
-        proj[2] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
-      } else{
-        proj[1] = vec3_getClip(clipped[0], unclipped[0], cam->nearPlane);
-        proj[2] = vec3_getClip(clipped[1], unclipped[0], cam->nearPlane);
-      }
-      proj[0][0] /= proj[0][2], proj[0][1] /= proj[0][2];
-    } break;
-    default:
-      continue;
     }
 
-    shader_pixel(canv, proj, color);
+    darray_append(&canv->vertices, vertex);
+    darray_appendPtr(&canv->uvSurfaces, obj->UVmap);
 
     if(extraVec3){
-      proj[1] = proj[0];
-      shader_pixel(canv, proj + 1, color);
+      vertex[1] = vertex[0];
+      darray_append(&canv->vertices, vertex + 1);
+      darray_appendPtr(&canv->uvSurfaces, obj->UVmap);
     }
   }
 }

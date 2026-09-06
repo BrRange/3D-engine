@@ -1,7 +1,7 @@
 #include "dataType/quaternion.h"
 #include <math.h>
 
-Quaternion quat_new(float angle, Vec3 normAxis){
+Quaternion quat_new(float angle, Vec4 normAxis){
   Quaternion quat;
   angle /= 2.f;
   sincosf(angle, &angle, &quat[0]);
@@ -22,7 +22,7 @@ Quaternion quat_compose(Quaternion quat, Quaternion val){
 }
 
 Quaternion quat_conjugate(Quaternion quat){
-  Vec3 v = {1, -1, -1, -1};
+  Vec4 v = {1, -1, -1, -1};
   return quat * v;
 }
 
@@ -48,17 +48,17 @@ Quaternion quat_slerp(Quaternion src, Quaternion dest, f32 t){
   return quat_add(src, dest);
 }
 
-Quaternion vec3_quat(Vec3 point){
+Quaternion vec4_quat(Vec4 point){
   return (Quaternion){0.f, point[0], point[1], point[2]};
 }
 
-Vec3 quat_vec3(Quaternion quat){
-  return (Vec3){quat[1], quat[2], quat[3]};
+Vec4 quat_vec4(Quaternion quat){
+  return (Vec4){quat[1], quat[2], quat[3]};
 }
 
-Vec3 vec3_rotate(Vec3 point, Quaternion quat){
+Vec4 vec4_rotate(Vec4 point, Quaternion quat){
   Quaternion conjugate = quat_conjugate(quat);
-  quat = quat_compose(quat, vec3_quat(point));
+  quat = quat_compose(quat, vec4_quat(point));
   quat = quat_compose(quat, conjugate);
-  return quat_vec3(quat);
+  return quat_vec4(quat);
 }

@@ -3,41 +3,41 @@
 
 #include "dataType/canvas.h"
 #include "entity/camera.h"
-#include "entity/lightSource.h"
 
-struct Polygon{
-  u16 idx[3];
-  u16 colorIndex;
+struct Vertex{
+  Vec4 coord, normal;
+  Vec2 uv;
 };
-typedef struct Polygon Polygon;
+typedef struct Vertex Vertex;
 
-Polygon polygon_new(u16 idx0, u16 idx1, u16 idx2, u16 colorIndex);
+Vertex vertex_new(Vec4 coord, Vec4 normal, Vec2 uv);
+
+Vertex vertex_mix(const Vertex a, const Vertex b, f32 t);
 
 struct Model{
-  Vec3 *vec3;
-  size_t vec3Count;
+  Vertex *vert;
   Polygon *polygon;
   size_t polyCount;
 };
 typedef struct Model Model;
 
-Model model(Vec3 *vert, size_t vertCount, Polygon *polygon, size_t polyCount);
+Model model_new(Vertex *vert, Polygon *polygon, size_t polyCount);
 
 struct Object{
   Model *model;
-  Color *palette;
+  SDL_Surface *UVmap;
   Quaternion rot;
-  Vec3 pos;
+  Vec4 pos;
   f32 scale;
 };
 typedef struct Object Object;
 
-Object object_new(Model *model, Color *palette, const Vec3 rCenter, f32 scale);
+Object object_new(Model *model, SDL_Surface *UVmap, const Vec4 rCenter, f32 scale);
 
 void object_rotate(Object *obj, Quaternion quat);
 
-void object_move(Object *obj, const Vec3 dv);
+void object_move(Object *obj, const Vec4 dv);
 
-void object_render(Object *obj, Canvas *canv, Camera *cam, LightSource_Packed *sources);
+void object_render(Object *obj, Canvas *canv, Camera *cam);
 
 #endif
