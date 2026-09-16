@@ -27,6 +27,22 @@ Model model_new(Vertex *vert, Polygon *polygon, size_t polyCount){
   return mdl;
 }
 
+Model *model_loadFile(const char *filepath){
+  u32 vertLen, polyLen;
+  SDL_IOStream *file = SDL_IOFromFile(filepath, "rb");
+  SDL_ReadU32LE(file, &vertLen);
+  Vertex *vert = SDL_malloc(sizeof *vert * vertLen);
+  SDL_ReadIO(file, vert, sizeof *vert * vertLen);
+  SDL_ReadU32LE(file, &polyLen);
+  Polygon *poly = SDL_malloc(sizeof *poly * polyLen);
+  SDL_ReadIO(file, poly, sizeof *poly * polyLen);
+  Model *mdl = SDL_malloc(sizeof *mdl);
+  mdl->vert = vert;
+  mdl->polygon = poly;
+  mdl->polyCount = polyLen;
+  return mdl;
+}
+
 Object object_new(Model *model, SDL_Surface *UVmap, const Vec4 pos, f32 scale){
   Object obj = {
     .model = model,

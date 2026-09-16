@@ -25,8 +25,8 @@ void tick(SDL_Renderer *rend, CommonData *data){
   static Vec4 pSpeed;
 
   Quaternion rot = quat_new(data->deltaT * .5, vec4_new(0, 1, 0));
-  object_rotate(data->objs, rot);
-  object_rotate(data->objs + 1, rot);
+  for(i32 i = 0; i < data->objCount; ++i)
+  object_rotate(data->objs + i, rot);
 
   f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? .05f : .01f;
 
@@ -75,88 +75,6 @@ void render(SDL_Renderer *rend, CommonData *data){
   SDL_RenderPresent(rend);
 }
 
-void build_cubeFlat(Vertex *vert, Polygon *poly){
-  vert[ 0] = vertex_new(vec4_new(-1, -1, -1), vec4_normal(vec4_new(0, 0, -1)), vec2_new(.25, .3334));
-  vert[ 1] = vertex_new(vec4_new(+1, -1, -1), vec4_normal(vec4_new(0, 0, -1)), vec2_new(.5, .3334));
-  vert[ 2] = vertex_new(vec4_new(-1, +1, -1), vec4_normal(vec4_new(0, 0, -1)), vec2_new(.25, .6667));
-  vert[ 3] = vertex_new(vec4_new(+1, +1, -1), vec4_normal(vec4_new(0, 0, -1)), vec2_new(.5, .6667));
-  
-  vert[ 4] = vertex_new(vec4_new(-1, -1, +1), vec4_normal(vec4_new(-1, 0, 0)), vec2_new(0, .3334));
-  vert[ 5] = vertex_new(vec4_new(-1, -1, -1), vec4_normal(vec4_new(-1, 0, 0)), vec2_new(.25, .3334));
-  vert[ 6] = vertex_new(vec4_new(-1, +1, +1), vec4_normal(vec4_new(-1, 0, 0)), vec2_new(0, .6667));
-  vert[ 7] = vertex_new(vec4_new(-1, +1, -1), vec4_normal(vec4_new(-1, 0, 0)), vec2_new(.25, .6667));
-  
-  vert[ 8] = vertex_new(vec4_new(-1, -1, +1), vec4_normal(vec4_new(0, -1, 0)), vec2_new(.25, .3334));
-  vert[ 9] = vertex_new(vec4_new(+1, -1, +1), vec4_normal(vec4_new(0, -1, 0)), vec2_new(.5, .3334));
-  vert[10] = vertex_new(vec4_new(-1, -1, -1), vec4_normal(vec4_new(0, -1, 0)), vec2_new(.25, 0));
-  vert[11] = vertex_new(vec4_new(+1, -1, -1), vec4_normal(vec4_new(0, -1, 0)), vec2_new(.5, 0));
-  
-  vert[12] = vertex_new(vec4_new(-1, +1, -1), vec4_normal(vec4_new(0, +1, 0)), vec2_new(.25, 1));
-  vert[13] = vertex_new(vec4_new(+1, +1, -1), vec4_normal(vec4_new(0, +1, 0)), vec2_new(.5, 1));
-  vert[14] = vertex_new(vec4_new(-1, +1, +1), vec4_normal(vec4_new(0, +1, 0)), vec2_new(.25, .6667));
-  vert[15] = vertex_new(vec4_new(+1, +1, +1), vec4_normal(vec4_new(0, +1, 0)), vec2_new(.5, .6667));
-  
-  vert[16] = vertex_new(vec4_new(+1, +1, +1), vec4_normal(vec4_new(+1, 0, 0)), vec2_new(.5, .6667));
-  vert[17] = vertex_new(vec4_new(+1, +1, -1), vec4_normal(vec4_new(+1, 0, 0)), vec2_new(.75, .6667));
-  vert[18] = vertex_new(vec4_new(+1, -1, +1), vec4_normal(vec4_new(+1, 0, 0)), vec2_new(.5, .3334));
-  vert[19] = vertex_new(vec4_new(+1, -1, -1), vec4_normal(vec4_new(+1, 0, 0)), vec2_new(.75, .3334));
-  
-  vert[20] = vertex_new(vec4_new(+1, -1, +1), vec4_normal(vec4_new(0, 0, +1)), vec2_new(.75, .3334));
-  vert[21] = vertex_new(vec4_new(-1, -1, +1), vec4_normal(vec4_new(0, 0, +1)), vec2_new(1, .3334));
-  vert[22] = vertex_new(vec4_new(+1, +1, +1), vec4_normal(vec4_new(0, 0, +1)), vec2_new(.75, .6667));
-  vert[23] = vertex_new(vec4_new(-1, +1, +1), vec4_normal(vec4_new(0, 0, +1)), vec2_new(1, .6667));
-  
-  for(int i = 0; i < 6; ++i){
-    poly[i * 2][0] = i * 4 + 0;
-    poly[i * 2][1] = i * 4 + 2;
-    poly[i * 2][2] = i * 4 + 1;
-    poly[i * 2][3] = i * 4 + 2;
-    poly[i * 2][4] = i * 4 + 3;
-    poly[i * 2][5] = i * 4 + 1;
-  }
-}
-
-void build_cube(Vertex *vert, Polygon *poly){
-  vert[ 0] = vertex_new(vec4_new(-1, -1, -1), vec4_normal(vec4_new(-1, -1, -1)), vec2_new(.25, .3334));
-  vert[ 1] = vertex_new(vec4_new(+1, -1, -1), vec4_normal(vec4_new(+1, -1, -1)), vec2_new(.5, .3334));
-  vert[ 2] = vertex_new(vec4_new(-1, +1, -1), vec4_normal(vec4_new(-1, +1, -1)), vec2_new(.25, .6667));
-  vert[ 3] = vertex_new(vec4_new(+1, +1, -1), vec4_normal(vec4_new(+1, +1, -1)), vec2_new(.5, .6667));
-  
-  vert[ 4] = vertex_new(vec4_new(-1, -1, +1), vec4_normal(vec4_new(-1, -1, +1)), vec2_new(0, .3334));
-  vert[ 5] = vertex_new(vec4_new(-1, -1, -1), vec4_normal(vec4_new(-1, -1, -1)), vec2_new(.25, .3334));
-  vert[ 6] = vertex_new(vec4_new(-1, +1, +1), vec4_normal(vec4_new(-1, +1, +1)), vec2_new(0, .6667));
-  vert[ 7] = vertex_new(vec4_new(-1, +1, -1), vec4_normal(vec4_new(-1, +1, -1)), vec2_new(.25, .6667));
-  
-  vert[ 8] = vertex_new(vec4_new(-1, -1, +1), vec4_normal(vec4_new(-1, -1, +1)), vec2_new(.25, .3334));
-  vert[ 9] = vertex_new(vec4_new(+1, -1, +1), vec4_normal(vec4_new(+1, -1, +1)), vec2_new(.5, .3334));
-  vert[10] = vertex_new(vec4_new(-1, -1, -1), vec4_normal(vec4_new(-1, -1, -1)), vec2_new(.25, 0));
-  vert[11] = vertex_new(vec4_new(+1, -1, -1), vec4_normal(vec4_new(+1, -1, -1)), vec2_new(.5, 0));
-  
-  vert[12] = vertex_new(vec4_new(-1, +1, -1), vec4_normal(vec4_new(-1, +1, -1)), vec2_new(.25, 1));
-  vert[13] = vertex_new(vec4_new(+1, +1, -1), vec4_normal(vec4_new(+1, +1, -1)), vec2_new(.5, 1));
-  vert[14] = vertex_new(vec4_new(-1, +1, +1), vec4_normal(vec4_new(-1, +1, +1)), vec2_new(.25, .6667));
-  vert[15] = vertex_new(vec4_new(+1, +1, +1), vec4_normal(vec4_new(+1, +1, +1)), vec2_new(.5, .6667));
-  
-  vert[16] = vertex_new(vec4_new(+1, +1, +1), vec4_normal(vec4_new(+1, +1, +1)), vec2_new(.5, .6667));
-  vert[17] = vertex_new(vec4_new(+1, +1, -1), vec4_normal(vec4_new(+1, +1, -1)), vec2_new(.75, .6667));
-  vert[18] = vertex_new(vec4_new(+1, -1, +1), vec4_normal(vec4_new(+1, -1, +1)), vec2_new(.5, .3334));
-  vert[19] = vertex_new(vec4_new(+1, -1, -1), vec4_normal(vec4_new(+1, -1, -1)), vec2_new(.75, .3334));
-  
-  vert[20] = vertex_new(vec4_new(+1, -1, +1), vec4_normal(vec4_new(+1, -1, +1)), vec2_new(.75, .3334));
-  vert[21] = vertex_new(vec4_new(-1, -1, +1), vec4_normal(vec4_new(-1, -1, +1)), vec2_new(1, .3334));
-  vert[22] = vertex_new(vec4_new(+1, +1, +1), vec4_normal(vec4_new(+1, +1, +1)), vec2_new(.75, .6667));
-  vert[23] = vertex_new(vec4_new(-1, +1, +1), vec4_normal(vec4_new(-1, +1, +1)), vec2_new(1, .6667));
-  
-  for(int i = 0; i < 6; ++i){
-    poly[i * 2][0] = i * 4 + 0;
-    poly[i * 2][1] = i * 4 + 2;
-    poly[i * 2][2] = i * 4 + 1;
-    poly[i * 2][3] = i * 4 + 2;
-    poly[i * 2][4] = i * 4 + 3;
-    poly[i * 2][5] = i * 4 + 1;
-  }
-}
-
 int main(){
   SDL_Window *win;
   SDL_Renderer *rend;
@@ -175,20 +93,8 @@ int main(){
   Camera cam = camera_new(vec4_new(0, 0, 0), 1000.f, .1f, 120.f * SDL_PI_F / 180.f);
   uni_calcPerspective(&cam, 720 /(f32) 1280);
 
-  Vertex vert[24];
-  Polygon poly[12];
-  Vertex fvert[24];
-  Polygon fpoly[12];
-
-  build_cube(vert, poly);
-  build_cubeFlat(fvert, fpoly);
-
-  Model mod = model_new(vert, poly, arrLen(poly));
-  Model fmod = model_new(fvert, fpoly, arrLen(fpoly));
-
   Object objs[] = {
-    object_new(&mod, SDL_LoadSurface("tex.png"), vec4_new(0, 0.2, 1), .2f),
-    object_new(&fmod, SDL_LoadSurface("tex.png"), vec4_new(1, 0.2, 1), .2f)
+    object_new(model_loadFile("model.bbm"), SDL_LoadSurface("tex.png"), vec4_new(0, 0.2, 1), 1.f)
   };
 
   if(!objs[0].UVmap) SDL_Log(__FILE_NAME__ ":%u %s", __LINE__, SDL_GetError());

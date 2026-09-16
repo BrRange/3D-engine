@@ -23,6 +23,8 @@ typedef struct Model Model;
 
 Model model_new(Vertex *vert, Polygon *polygon, size_t polyCount);
 
+Model *model_loadFile(const char *filepath);
+
 struct Object{
   Model *model;
   SDL_Surface *UVmap;
