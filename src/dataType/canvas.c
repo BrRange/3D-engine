@@ -52,7 +52,7 @@ void shader_pixel(Canvas *canv){
     f32 iBC = (c.x * b.y - b.x * c.y) + xdiff[1] * bounds[0] - ydiff[1] * bounds[2];
     f32 iCA = (a.x * c.y - c.x * a.y) + xdiff[2] * bounds[0] - ydiff[2] * bounds[2];
     
-    f32 bary = 1.f / (iAB + iBC + iCA);
+    const f32 bary = 1.f / (iAB + iBC + iCA);
 
     SDL_Rect UVsize;
     SDL_GetSurfaceClipRect(UVmap, &UVsize);
@@ -61,17 +61,19 @@ void shader_pixel(Canvas *canv){
       f32 AB = iAB;
       f32 BC = iBC;
       f32 CA = iCA;
-      for(i32 col = bounds[0]; col < bounds[1]; ++col){
-        usz idx = (usz)row * canv->w + col;
-        
-        if(AB < 0.f) goto skip;
-        if(BC < 0.f) goto skip;
-        if(CA < 0.f) goto skip;
-        
+      i32 col = bounds[0];
+      while((AB < 0.f || BC < 0.f || CA < 0.f) && col < bounds[1]){
+        AB += xdiff[0];
+        BC += xdiff[1];
+        CA += xdiff[2];
+        ++col;
+      }
+      for(; col < bounds[1]; ++col){
+        usz idx = (usz)row * canv->w + col;        
+
         Vec4 weight = vec4_new(BC * bary, CA * bary, AB * bary);
-        
-        f32 thisInv = vec4_dot(weight, depth);
-        f32 thisZ = 1.f / thisInv;
+
+        f32 thisZ = 1.f / vec4_dot(weight, depth);
         
         if(thisZ >= canv->zBuffer[idx]) goto skip;
         
@@ -102,9 +104,11 @@ void shader_pixel(Canvas *canv){
         canv->zBuffer[idx] = thisZ;
 
         skip:
+
         AB += xdiff[0];
         BC += xdiff[1];
         CA += xdiff[2];
+        if(AB < 0.f || BC < 0.f || CA < 0.f) break;
       }
       iAB -= ydiff[0];
       iBC -= ydiff[1];

@@ -22,13 +22,12 @@ typedef struct CommonData{
 } CommonData;
 
 void tick(SDL_Renderer *rend, CommonData *data){
-  static Vec4 pSpeed;
-
   Quaternion rot = quat_new(data->deltaT * .5, vec4_new(0, 1, 0));
   for(i32 i = 0; i < data->objCount; ++i)
   object_rotate(data->objs + i, rot);
 
-  f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? .05f : .01f;
+  f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? 5.f : 1.f;
+  acc *= data->deltaT;
 
   Vec2 mouseM = mouseH_getMovement(data->mouseH);
 
@@ -93,8 +92,14 @@ int main(){
   Camera cam = camera_new(vec4_new(0, 0, 0), 1000.f, .1f, 120.f * SDL_PI_F / 180.f);
   uni_calcPerspective(&cam, 720 /(f32) 1280);
 
+  SDL_Surface *surf = SDL_LoadSurface("tex.png");
+  SDL_Surface *surf2 = SDL_LoadSurface("binbows.png");
+
   Object objs[] = {
-    object_new(model_loadFile("model.bbm"), SDL_LoadSurface("tex.png"), vec4_new(0, 0.2, 1), 1.f)
+    object_new(model_loadFile("penger.bbm"), surf, vec4_new(0, 0.2, 10), 1.f),
+    object_new(model_loadFile("spoon.bbm"), surf2, vec4_new(5, 0.2, 10), 1.f),
+    object_new(model_loadFile("teacup.bbm"), surf2, vec4_new(10, 0.2, 10), 1.f),
+    object_new(model_loadFile("teapot.bbm"), surf2, vec4_new(15, 0.2, 10), 1.f)
   };
 
   if(!objs[0].UVmap) SDL_Log(__FILE_NAME__ ":%u %s", __LINE__, SDL_GetError());
