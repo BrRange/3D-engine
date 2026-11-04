@@ -39,9 +39,9 @@ void shader_pixel(Canvas *canv){
     vec2_bound(a, b, c, bounds);
     
     bounds[0] = SDL_max(bounds[0], 0);
-    bounds[1] = SDL_min(bounds[1], canv->w - 1);
+    bounds[1] = SDL_min(bounds[1], canv->w);
     bounds[2] = SDL_max(bounds[2], 0);
-    bounds[3] = SDL_min(bounds[3], canv->h - 1);
+    bounds[3] = SDL_min(bounds[3], canv->h);
     
     const Vec4
     xdiff = vec4_new(b.y - a.y, c.y - b.y, a.y - c.y),
@@ -56,7 +56,6 @@ void shader_pixel(Canvas *canv){
 
     SDL_Rect UVsize;
     SDL_GetSurfaceClipRect(UVmap, &UVsize);
-    
     for(i32 row = bounds[2]; row < bounds[3]; ++row){
       f32 AB = iAB;
       f32 BC = iBC;

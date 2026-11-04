@@ -88,7 +88,7 @@ int main(){
   KeyboardHandler kbHandler = {0};
   MouseHandler moHandler = {0};
 
-  Canvas canv = canvas_new(rend, 800, 800);
+  Canvas canv = canvas_new(rend, 720, 720);
   Camera cam = camera_new(vec4_new(0, 0, 0), 1000.f, .1f, 120.f * SDL_PI_F / 180.f);
   uni_calcPerspective(&cam, 720 /(f32) 1280);
 

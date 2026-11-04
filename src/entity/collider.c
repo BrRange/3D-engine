@@ -1,7 +1,6 @@
 #include "entity/collider.h"
 
 #include <SDL3/SDL_assert.h>
-#define UNIMPLEMENTED false
 
 void collider_setResponse(Collider *coll, CollisionType type, f32 coef){
   coll->collision = type;
@@ -281,43 +280,76 @@ bool collider_sphere_box(Collider_Sphere *sphere, Collider_Box *box, CollisionIn
 }
 
 bool collider_pill_pill(Collider_Pill *a, Collider_Pill *b, CollisionInfo *info){
-  (void) a;
-  (void) b;
-  SDL_assert(UNIMPLEMENTED);
-  return false;
+  Vec4 Abase = a->base.offset, Arun = a->extension - Abase;
+  Vec4 Bbase = b->base.offset, Brun = b->extension - Abase;
+
+  Abase = vec4_rotate(Abase, a->base.anchor->rot);
+  Arun = vec4_rotate(Arun, a->base.anchor->rot);
+  Bbase = vec4_rotate(Bbase, b->base.anchor->rot);
+  Brun = vec4_rotate(Brun, b->base.anchor->rot);
+  Abase += a->base.anchor->pos;
+  Bbase += b->base.anchor->pos;
+  
+  Vec4 projection = Brun * vec4_dot(Arun, Brun) - Arun * vec4_dot(Brun, Brun);
+  f32 perpProj = vec4_dot(projection, Arun);
+  if(perpProj == 0) projection = Abase;
+  else{
+    f32 baseProj = vec4_dot(projection, Bbase - Abase);
+    projection = Abase + SDL_clamp(baseProj / perpProj, 0.f, 1.f) * Arun;
+  }
+
+  Vec4 B = vec4_dot(Brun, Brun) == 0.f ? Bbase
+  : Bbase + SDL_clamp(vec4_dot(projection - Bbase, Brun) / vec4_dot(Brun, Brun), 0.f, 1.f) * Brun;
+
+  Vec4 A = vec4_dot(Arun, Arun) == 0.f ? Abase
+  : Abase + SDL_clamp(vec4_dot(B - Abase, Arun) / vec4_dot(Arun, Arun), 0.f, 1.f) * Arun;
+
+  Vec4 diff = B - A;
+  f32 radius = a->radius + b->radius;
+  f32 sqrDist = vec4_dot(diff, diff);
+
+  if(info){
+    info->source = (Collider*)a;
+    info->dest = (Collider*)b;
+    info->normal = vec4_normal(diff);
+    info->distance = sqrtf(sqrDist);
+    info->penetration = info->distance - radius;
+  }
+
+  return sqrDist < radius * radius;
 }
 
 bool collider_pill_beam(Collider_Pill *pill, Collider_Beam *beam, CollisionInfo *info){
   (void) pill;
   (void) beam;
-  SDL_assert(UNIMPLEMENTED);
+  SDL_assert(!"IMPLEMENTED");
   return false;
 }
 
 bool collider_pill_box(Collider_Pill *pill, Collider_Box *box, CollisionInfo *info){
   (void) pill;
   (void) box;
-  SDL_assert(UNIMPLEMENTED);
+  SDL_assert(!"IMPLEMENTED");
   return false;
 }
 
 bool collider_beam_beam(Collider_Beam *a, Collider_Beam *b, CollisionInfo *info){
   (void) a;
   (void) b;
-  SDL_assert(UNIMPLEMENTED);
+  SDL_assert(!"IMPLEMENTED");
   return false;
 }
 
 bool collider_beam_box(Collider_Beam *beam, Collider_Box *box, CollisionInfo *info){
   (void) beam;
   (void) box;
-  SDL_assert(UNIMPLEMENTED);
+  SDL_assert(!"IMPLEMENTED");
   return false;
 }
 
 bool collider_box_box(Collider_Box *a, Collider_Box *b, CollisionInfo *info){
   (void) a;
   (void) b;
-  SDL_assert(UNIMPLEMENTED);
+  SDL_assert(!"IMPLEMENTED");
   return false;
 }
