@@ -4,12 +4,11 @@
 #include "entity/object.h"
 
 typedef struct Player{
-  Object *body;
+  Object body;
+  Collider_Packed hitbox;
   Vec4 speed;
 } Player;
 
-Player player_new(Object *body, Vec4 pos);
-
-void player_tick(Player *pl, f32 dt);
+Player player_new(Object body, Collider_Packed hitbox);
 
 #endif

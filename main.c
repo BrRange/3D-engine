@@ -17,14 +17,15 @@ typedef struct CommonData{
   KeyboardHandler *keyboardH;
   MouseHandler *mouseH;
   Canvas *canv;
+  Player *player;
   Object *objs;
   usz objCount;
+  Collider_Packed *colliders;
+  usz collCount;
 } CommonData;
 
 void tick(SDL_Renderer *rend, CommonData *data){
   Quaternion rot = quat_new(data->deltaT * .5, vec4_new(0, 1, 0));
-  for(i32 i = 0; i < data->objCount; ++i)
-  object_rotate(data->objs + i, rot);
 
   f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? 5.f : 1.f;
   acc *= data->deltaT;
@@ -34,17 +35,24 @@ void tick(SDL_Renderer *rend, CommonData *data){
   camera_rotate(data->cam, mouseM.x * 0.01f, mouseM.y * 0.01f);
   Vec4 cameraView = camera_viewVec3(data->cam), rotated;
 
-  if(keyboardH_has(data->keyboardH, SDLK_SPACE)) camera_moveAbs(data->cam, vec4_new(0, -acc, 0));
-  if(keyboardH_has(data->keyboardH, SDLK_LCTRL)) camera_moveAbs(data->cam, vec4_new(0, acc, 0));
+  data->player->body.pos += data->player->speed * data->deltaT;
+
+  cameraView *= 80.f;
+  cameraView = data->player->body.pos - cameraView;
+  cameraView -= data->cam->pos;
+  camera_moveAbs(data->cam, cameraView / 4.f);
 
   cameraView = camera_viewVec3(data->cam);
   rotated = cameraView;
-  if(keyboardH_has(data->keyboardH, SDLK_W)) camera_moveAbs(data->cam, rotated * acc);
-  if(keyboardH_has(data->keyboardH, SDLK_S)) camera_moveAbs(data->cam, rotated * -acc);
+  if(keyboardH_has(data->keyboardH, SDLK_W)) data->player->speed += rotated * acc;
+  if(keyboardH_has(data->keyboardH, SDLK_S)) data->player->speed -= rotated * acc;
   rotated = vec4_new(-cameraView[2], 0, cameraView[0]);
   rotated = vec4_normal(rotated);
-  if(keyboardH_has(data->keyboardH, SDLK_A)) camera_moveAbs(data->cam, rotated * acc);
-  if(keyboardH_has(data->keyboardH, SDLK_D)) camera_moveAbs(data->cam, rotated * -acc);
+  if(keyboardH_has(data->keyboardH, SDLK_A)) data->player->speed += rotated * acc;
+  if(keyboardH_has(data->keyboardH, SDLK_D)) data->player->speed -= rotated * acc;
+
+  data->player->speed *= vec4_expand(1 - 0.999 * data->deltaT);
+  if(data->player->body.pos[1] > 50) data->player->body.pos = vec4_expand(0);
 }
 
 void render(SDL_Renderer *rend, CommonData *data){
@@ -53,6 +61,8 @@ void render(SDL_Renderer *rend, CommonData *data){
   Canvas *canv = data->canv;
 
   canvas_clear(canv);
+
+  object_render(&data->player->body, canv, data->cam);
 
   for(usz i = 0; i < data->objCount; ++i)
     object_render(data->objs + i, canv, data->cam);
@@ -92,15 +102,16 @@ int main(){
   Camera cam = camera_new(vec4_new(0, 0, 0), 1000.f, .1f, 120.f * SDL_PI_F / 180.f);
   uni_calcPerspective(&cam, 720 /(f32) 1280);
 
-  SDL_Surface *surf = SDL_LoadSurface("tex.png");
-  SDL_Surface *surf2 = SDL_LoadSurface("binbows.png");
+  SDL_Surface *surf = SDL_LoadSurface("res/tex.png");
 
   Object objs[] = {
-    object_new(model_loadFile("penger.bbm"), surf, vec4_new(0, 0.2, 10), 1.f),
-    object_new(model_loadFile("spoon.bbm"), surf2, vec4_new(5, 0.2, 10), 1.f),
-    object_new(model_loadFile("teacup.bbm"), surf2, vec4_new(10, 0.2, 10), 1.f),
-    object_new(model_loadFile("teapot.bbm"), surf2, vec4_new(15, 0.2, 10), 1.f)
+    object_new(model_loadFile("res/plane.bbm"), surf, vec4_new(0, 1, 0), 500.f)
   };
+
+  Player play = player_new(
+    object_new(model_loadFile("res/ico.bbm"), surf, vec4_new(0, 0, 0), 10.f),
+    (Collider_Packed){.sphere = collider_newSphere(&play.body, vec4_expand(0), 10)}
+  );
 
   if(!objs[0].UVmap) SDL_Log(__FILE_NAME__ ":%u %s", __LINE__, SDL_GetError());
 
@@ -108,17 +119,25 @@ int main(){
 
   SDL_GetCurrentTime(&dtime);
 
+  Collider_Packed packed[] = {
+    [0].box = collider_newBox(
+      objs + 0, objs[0].model->vert[0].coord, objs[0].model->vert[2].coord + vec4_new(0, 10, 0), vec4_new(0, -1, 0)
+    )
+  };
+
   CommonData data = {
     .cam = &cam,
     .keyboardH = &kbHandler,
     .mouseH = &moHandler,
+    .player = &play,
     .objs = objs,
     .canv = &canv,
+    .colliders = packed,
+    .collCount = arrLen(packed),
     .objCount = objLen,
   };
-  bool running = true;
 
- for(;;){
+  for(;;){
     dtime = start - end;
     if(1 || dtime >= 16){
       end = start;

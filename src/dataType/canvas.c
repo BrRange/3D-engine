@@ -87,7 +87,7 @@ void shader_pixel(Canvas *canv){
         Vec4 pixel_normal = vertex[0].normal * W[0] + vertex[1].normal * W[1] + vertex[2].normal * W[2];
         pixel_normal *= thisZ;
         
-        const Vec4 light = vec4_normal(vec4_new(1, -1, 1));
+        const Vec4 light = vec4_normal(vec4_new(1, 2, 1));
         
         f32 incidence = 255 * vec4_dot(light, pixel_normal);
         incidence = SDL_clamp(incidence, 32, 255);
