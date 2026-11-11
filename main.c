@@ -25,9 +25,11 @@ typedef struct CommonData{
 } CommonData;
 
 void tick(SDL_Renderer *rend, CommonData *data){
-  Quaternion rot = quat_new(data->deltaT * .5, vec4_new(0, 1, 0));
+  Quaternion rot = quat_new(data->deltaT * 5, vec4_new(0, 1, 0));
 
-  f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? 5.f : 1.f;
+  object_rotate(data->objs + 1, rot);
+
+  f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? 200.f : 100.f;
   acc *= data->deltaT;
 
   Vec2 mouseM = mouseH_getMovement(data->mouseH);
@@ -42,14 +44,37 @@ void tick(SDL_Renderer *rend, CommonData *data){
   cameraView -= data->cam->pos;
   camera_moveAbs(data->cam, cameraView / 4.f);
 
+  bool canJump = false;
+  Vec4 jumpNormal = {0};
+
+  CollisionInfo info;
+  for(i32 i = 0; i < data->collCount; ++i){
+    if(collider_collide(&data->player->hitbox.collider, &data->colliders[i].collider, &info)){
+      if(info.dest == &data->player->hitbox.collider) info.normal = -info.normal;
+      if(info.normal[1] > 0.7f){
+        canJump = true;
+        jumpNormal += info.normal;
+      }
+      if(info.snap) data->player->body.pos += info.normal * info.penetration;
+      data->player->speed = collision_getResponse(&info, data->player->speed, data->deltaT);
+    }
+  }
+
+  data->player->speed[1] += 500 * data->deltaT;
+  if(canJump){
+    acc *= 1.5;
+    jumpNormal = vec4_normal(jumpNormal);
+  }
+
   cameraView = camera_viewVec3(data->cam);
-  rotated = cameraView;
+  rotated = vec4_new(cameraView[0], 0, cameraView[2]);;
+  rotated = vec4_normal(rotated);
   if(keyboardH_has(data->keyboardH, SDLK_W)) data->player->speed += rotated * acc;
   if(keyboardH_has(data->keyboardH, SDLK_S)) data->player->speed -= rotated * acc;
-  rotated = vec4_new(-cameraView[2], 0, cameraView[0]);
-  rotated = vec4_normal(rotated);
+  rotated = vec4_new(-rotated[2], 0, rotated[0]);
   if(keyboardH_has(data->keyboardH, SDLK_A)) data->player->speed += rotated * acc;
   if(keyboardH_has(data->keyboardH, SDLK_D)) data->player->speed -= rotated * acc;
+  if(keyboardH_has(data->keyboardH, SDLK_SPACE) && canJump) data->player->speed -= jumpNormal * 250; 
 
   data->player->speed *= vec4_expand(1 - 0.999 * data->deltaT);
   if(data->player->body.pos[1] > 50) data->player->body.pos = vec4_expand(0);
@@ -105,12 +130,13 @@ int main(){
   SDL_Surface *surf = SDL_LoadSurface("res/tex.png");
 
   Object objs[] = {
-    object_new(model_loadFile("res/plane.bbm"), surf, vec4_new(0, 1, 0), 500.f)
+    object_new(model_loadFile("res/plane.bbm"), surf, vec4_new(0, 0, 0), 500.f),
+    object_new(model_loadFile("res/pylon.bbm"), surf, vec4_new(0, -5, 0), 10.f)
   };
 
   Player play = player_new(
-    object_new(model_loadFile("res/ico.bbm"), surf, vec4_new(0, 0, 0), 10.f),
-    (Collider_Packed){.sphere = collider_newSphere(&play.body, vec4_expand(0), 10)}
+    object_new(model_loadFile("res/ico.bbm"), surf, vec4_new(0, -10, 0), 10.f),
+    (Collider_Packed){.sphere = collider_newSphere(&play.body, vec4_expand(0), 10.f)}
   );
 
   if(!objs[0].UVmap) SDL_Log(__FILE_NAME__ ":%u %s", __LINE__, SDL_GetError());
@@ -121,9 +147,14 @@ int main(){
 
   Collider_Packed packed[] = {
     [0].box = collider_newBox(
-      objs + 0, objs[0].model->vert[0].coord, objs[0].model->vert[2].coord + vec4_new(0, 10, 0), vec4_new(0, -1, 0)
+      objs + 0, vec4_new(0, 2, 0), vec4_new(objs[0].scale, 2, objs[0].scale), vec4_new(0, 1, 0)
+    ),
+    [1].pill = collider_newPill(
+      objs + 1, vec4_new(-4 * objs[1].scale, 0, 0), vec4_new(4 * objs[1].scale, 0, 0), objs[1].scale
     )
   };
+  collider_setResponse(&packed[0].collider, CollisionType_Slide, 1.f);
+  collider_setResponse(&packed[1].collider, CollisionType_Slide, 0.f);
 
   CommonData data = {
     .cam = &cam,

@@ -6,5 +6,6 @@ Player player_new(Object body, Collider_Packed hitbox){
     .body = body,
     .hitbox = hitbox
   };
+  collider_setResponse(&pl.hitbox.collider, CollisionType_Slide, 1.f);
   return pl;
 }

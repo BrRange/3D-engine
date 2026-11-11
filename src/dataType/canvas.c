@@ -54,8 +54,6 @@ void shader_pixel(Canvas *canv){
     
     const f32 bary = 1.f / (iAB + iBC + iCA);
 
-    SDL_Rect UVsize;
-    SDL_GetSurfaceClipRect(UVmap, &UVsize);
     for(i32 row = bounds[2]; row < bounds[3]; ++row){
       f32 AB = iAB;
       f32 BC = iBC;
@@ -89,16 +87,19 @@ void shader_pixel(Canvas *canv){
         
         const Vec4 light = vec4_normal(vec4_new(1, 2, 1));
         
-        f32 incidence = 255 * vec4_dot(light, pixel_normal);
-        incidence = SDL_clamp(incidence, 32, 255);
+        f32 incidence = vec4_dot(light, pixel_normal);
+        incidence = SDL_clamp(incidence, 0.25, 1);
         
         Vec2 pixel_uv = vec2_mul(vertex[0].uv, W[0]);
         pixel_uv = vec2_add(pixel_uv, vec2_mul(vertex[1].uv, W[1]));
         pixel_uv = vec2_add(pixel_uv, vec2_mul(vertex[2].uv, W[2]));
         pixel_uv = vec2_mul(pixel_uv, thisZ);
-        Color color;
-        SDL_ReadSurfacePixelFloat(UVmap, pixel_uv.x * UVsize.w, pixel_uv.y * UVsize.h, &color.r, &color.g, &color.b, NULL);
-        PixelColor pcolor = pixelColor_new(incidence * color.r, incidence * color.g, incidence *color.b, 255);
+        PixelColor pcolor;
+        SDL_ReadSurfacePixel(UVmap, pixel_uv.x * UVmap->w, pixel_uv.y * UVmap->h, &pcolor.r, &pcolor.g, &pcolor.b, NULL);
+        pcolor.r *= incidence;
+        pcolor.g *= incidence;
+        pcolor.b *= incidence;
+        pcolor.a = 255;
         canv->pixel[idx] = pcolor;
         canv->zBuffer[idx] = thisZ;
 
