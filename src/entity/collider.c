@@ -1,6 +1,11 @@
 #include "entity/collider.h"
 
 #include <SDL3/SDL_assert.h>
+#include <SDL3/SDL_log.h>
+
+static i32 dclamp(f32 x){
+  return x < 0.f ? -1 : x > 1.f ? 1 : 0;
+}
 
 void collider_setResponse(Collider *coll, CollisionType type, f32 coef){
   coll->collision = type;
@@ -188,24 +193,23 @@ bool collider_sphere_sphere(Collider_Sphere *a, Collider_Sphere *b, CollisionInf
 }
 
 bool collider_sphere_pill(Collider_Sphere *sphere, Collider_Pill *pill, CollisionInfo *info){
-  Vec4 spherePos, pillPos[2];
+  Vec4 spherePos, pillPos, pillRun;
   
   spherePos = sphere->base.anchor->pos + sphere->base.offset;
   spherePos = vec4_rotate(spherePos, sphere->base.anchor->rot);
 
-  pillPos[0] = vec4_rotate(pill->base.offset, pill->base.anchor->rot);
-  pillPos[1] = vec4_rotate(pill->extension, pill->base.anchor->rot);
-  pillPos[0] += pill->base.anchor->pos;
-  pillPos[1] += pill->base.anchor->pos;
+  pillRun = pill->extension - pill->base.offset;
+  pillPos = vec4_rotate(pill->base.offset, pill->base.anchor->rot);
+  pillRun = vec4_rotate(pillRun, pill->base.anchor->rot);
+  pillPos += pill->base.anchor->pos;
   
-  Vec4 line = pillPos[0] - pillPos[1];
-  Vec4 proj = pillPos[0] - spherePos;
+  Vec4 proj = spherePos - pillPos;
 
-  f32 radius = vec4_dot(line, proj) / vec4_dot(line, line);
+  f32 radius = vec4_dot(proj, pillRun) / vec4_dot(pillRun, pillRun);
   radius = SDL_clamp(radius, 0.f, 1.f);
-  line = vec4_mix(pillPos[0], pillPos[1], radius);
+  pillPos += pillRun * radius;
 
-  proj = line - spherePos;
+  proj = pillPos - spherePos;
   radius = sphere->radius + pill->radius;
 
   f32 sqrDist = vec4_dot(proj, proj);
@@ -281,7 +285,7 @@ bool collider_sphere_box(Collider_Sphere *sphere, Collider_Box *box, CollisionIn
 
 bool collider_pill_pill(Collider_Pill *a, Collider_Pill *b, CollisionInfo *info){
   Vec4 Abase = a->base.offset, Arun = a->extension - Abase;
-  Vec4 Bbase = b->base.offset, Brun = b->extension - Abase;
+  Vec4 Bbase = b->base.offset, Brun = b->extension - Bbase;
 
   Abase = vec4_rotate(Abase, a->base.anchor->rot);
   Arun = vec4_rotate(Arun, a->base.anchor->rot);
@@ -289,20 +293,52 @@ bool collider_pill_pill(Collider_Pill *a, Collider_Pill *b, CollisionInfo *info)
   Brun = vec4_rotate(Brun, b->base.anchor->rot);
   Abase += a->base.anchor->pos;
   Bbase += b->base.anchor->pos;
+  Vec4 Diff = Bbase - Abase;
   
-  Vec4 projection = Brun * vec4_dot(Arun, Brun) - Arun * vec4_dot(Brun, Brun);
-  f32 perpProj = vec4_dot(projection, Arun);
-  if(perpProj == 0) projection = Abase;
-  else{
-    f32 baseProj = vec4_dot(projection, Bbase - Abase);
-    projection = Abase + SDL_clamp(baseProj / perpProj, 0.f, 1.f) * Arun;
+  f32
+  AA = vec4_dot(Arun, Arun),
+  BB = vec4_dot(Brun, Brun),
+  AB = vec4_dot(Arun, Brun),
+  AD = vec4_dot(Arun, Diff),
+  BD = vec4_dot(Brun, Diff);
+
+  f32 Acoef = 0, Bcoef = 0;
+  i32 Aclamp = -1, Bclamp = -1;
+
+  if(AB * AB - AA * BB){
+    Acoef = (AB * BD - AD * BB) / (AB * AB - AA * BB);
+    Bcoef = (BD * AA - AB * AD) / (AB * AB - AA * BB);
+    Aclamp = dclamp(Acoef);
+    Bclamp = dclamp(Bcoef);
   }
+  
+  Vec4 A = Abase;
+  Vec4 B = Bbase;
+  if(AA == 0.f) AA = 1.f;
+  if(BB == 0.f) BB = 1.f;
 
-  Vec4 B = vec4_dot(Brun, Brun) == 0.f ? Bbase
-  : Bbase + SDL_clamp(vec4_dot(projection - Bbase, Brun) / vec4_dot(Brun, Brun), 0.f, 1.f) * Brun;
-
-  Vec4 A = vec4_dot(Arun, Arun) == 0.f ? Abase
-  : Abase + SDL_clamp(vec4_dot(B - Abase, Arun) / vec4_dot(Arun, Arun), 0.f, 1.f) * Arun;
+  if(Aclamp == 0 && Bclamp == 0){ 
+    A += Acoef * Arun;
+    B += Bcoef * Brun;
+  }
+  else if(Aclamp == 0){
+    if(Bclamp == 1){
+      A += Arun * ((AB + AD) / AA);
+      B += Brun;
+    } else A += Arun * (AD / AA);
+  }
+  else if(Bclamp == 0){
+    if(Aclamp == 1){
+      A += Arun;
+      B += Brun * ((AB - BD) / BB);
+    } else B -= Brun * (BD / BB);
+  }
+  else{
+    Vec4 P = A;
+    if(Aclamp == 1) P += Arun;
+    B += Brun * SDL_clamp(vec4_dot(P - B, Brun) / BB, 0.f, 1.f);
+    A += Arun * SDL_clamp(vec4_dot(B - A, Arun) / AA, 0.f, 1.f);
+  }
 
   Vec4 diff = B - A;
   f32 radius = a->radius + b->radius;
@@ -327,10 +363,8 @@ bool collider_pill_beam(Collider_Pill *pill, Collider_Beam *beam, CollisionInfo 
 }
 
 bool collider_pill_box(Collider_Pill *pill, Collider_Box *box, CollisionInfo *info){
-  (void) pill;
-  (void) box;
-  SDL_assert(!"IMPLEMENTED");
-  return false;
+  Collider_Sphere base = collider_newSphere(pill->base.anchor, pill->base.offset, pill->radius);
+  return collider_sphere_box(&base, box, info);
 }
 
 bool collider_beam_beam(Collider_Beam *a, Collider_Beam *b, CollisionInfo *info){

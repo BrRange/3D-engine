@@ -55,7 +55,7 @@ Object object_new(Model *model, SDL_Surface *UVmap, const Vec4 pos, f32 scale){
 }
 
 void object_rotate(Object *obj, Quaternion quat){
-  obj->rot = quat_compose(obj->rot, quat);
+  obj->rot = quat_compose(quat, obj->rot);
 }
 
 void object_move(Object *obj, const Vec4 dv){

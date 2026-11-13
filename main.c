@@ -28,6 +28,8 @@ void tick(SDL_Renderer *rend, CommonData *data){
   Quaternion rot = quat_new(data->deltaT * 5, vec4_new(0, 1, 0));
 
   object_rotate(data->objs + 1, rot);
+  object_rotate(data->objs + 2, rot);
+  object_rotate(data->objs + 3, rot);
 
   f32 acc = keyboardH_has(data->keyboardH, SDLK_LSHIFT) ? 200.f : 100.f;
   acc *= data->deltaT;
@@ -131,12 +133,18 @@ int main(){
 
   Object objs[] = {
     object_new(model_loadFile("res/plane.bbm"), surf, vec4_new(0, 0, 0), 500.f),
-    object_new(model_loadFile("res/pylon.bbm"), surf, vec4_new(0, -5, 0), 10.f)
+    object_new(model_loadFile("res/pylon.bbm"), surf, vec4_new(0, -5, 0), 10.f),
+    object_new(model_loadFile("res/pylon.bbm"), surf, vec4_new(0, -50, 0), 10.f),
+    object_new(model_loadFile("res/pylon.bbm"), surf, vec4_new(0, -25, 0), 9.9f)
   };
+  object_rotate(objs + 2, quat_new(SDL_PI_F / 2, vec4_new(0, 1, 0)));
+  object_rotate(objs + 3, quat_new(SDL_PI_F / 2, vec4_new(0, 0, 1)));
 
   Player play = player_new(
     object_new(model_loadFile("res/ico.bbm"), surf, vec4_new(0, -10, 0), 10.f),
-    (Collider_Packed){.sphere = collider_newSphere(&play.body, vec4_expand(0), 10.f)}
+    (Collider_Packed){
+      .sphere = collider_newSphere(&play.body, vec4_expand(0), 10.f)
+    }
   );
 
   if(!objs[0].UVmap) SDL_Log(__FILE_NAME__ ":%u %s", __LINE__, SDL_GetError());
@@ -151,10 +159,18 @@ int main(){
     ),
     [1].pill = collider_newPill(
       objs + 1, vec4_new(-4 * objs[1].scale, 0, 0), vec4_new(4 * objs[1].scale, 0, 0), objs[1].scale
+    ),
+    [2].pill = collider_newPill(
+      objs + 2, vec4_new(-4 * objs[2].scale, 0, 0), vec4_new(4 * objs[2].scale, 0, 0), objs[2].scale
+    ),
+    [3].pill = collider_newPill(
+      objs + 3, vec4_new(-4 * objs[3].scale, 0, 0), vec4_new(4 * objs[3].scale, 0, 0), objs[3].scale
     )
   };
   collider_setResponse(&packed[0].collider, CollisionType_Slide, 1.f);
   collider_setResponse(&packed[1].collider, CollisionType_Slide, 0.f);
+  collider_setResponse(&packed[2].collider, CollisionType_Slide, 0.f);
+  collider_setResponse(&packed[3].collider, CollisionType_Slide, 0.f);
 
   CommonData data = {
     .cam = &cam,
